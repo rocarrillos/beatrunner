@@ -98,7 +98,7 @@ class Player(InstructionGroup):
                 self.dt = 0
                 self.jump_anim = None
 
-            powerup_collision = self.listen_collision_powerup(self)
+            powerup = self.listen_collision_powerup(self)
         return True
 
 
@@ -138,13 +138,14 @@ class Ground(InstructionGroup):
 
 
 class Powerup(InstructionGroup):
-    def __init__(self, pos, powerup_type):
+    def __init__(self, pos, powerup_type, activation_listener=None):
         super(Powerup, self).__init__()
         self.pos = pos
         self.texture = TEXTURES[powerup_type]
         self.powerup = Rectangle(pos=self.pos, size=[POWERUP_LENGTH, POWERUP_LENGTH],texture=self.texture)
         self.add(self.powerup)
         self.triggered = False
+        self.activation_listener = activation_listener
 
     def on_update(self, dt):
         self.powerup.pos -= np.array([dt * RIGHT_SPEED, 0])
@@ -158,6 +159,10 @@ class Powerup(InstructionGroup):
 
     def get_size(self):
         return self.powerup.size
+
+    def activate(self):
+        self.activation_listener()
+        self.triggered = True
 
 
 class GameDisplay(InstructionGroup):
@@ -247,13 +252,16 @@ class GameDisplay(InstructionGroup):
 
     def listen_collision_block(self, player):
         for block in self.blocks:
-            if block.get_pos()[0] < player.get_pos()[0] < block.get_pos()[0] + block.get_size()[0]:
+            if block.get_pos()[0] < player.get_pos()[0] < block.get_pos()[0] + block.get_size()[0] \
+                    or block.get_pos()[0] < player.get_pos()[0] + PLAYER_WIDTH < block.get_pos()[0] + block.get_size()[0]:
+
                 if block.get_pos()[1] < player.get_pos()[1] <= block.get_pos()[1] + BLOCK_HEIGHT:
-                    # FALL ONTO A NEW BLOCK
+                    # CASE 1: FALL ONTO A NEW BLOCK
                     player.set_y(block.get_pos()[1] + BLOCK_HEIGHT)
                     return True
                 elif block.get_pos()[1] < player.get_pos()[1] + PLAYER_HEIGHT < block.get_pos()[1] + BLOCK_HEIGHT:
-                    # jump up into a block (just fall back down)
+                    # CASE 2: PLAYER Top border is inside the block, which suggests a jump up into a block
+                    # (just fall back down)
                     return False
         return False
 
@@ -265,5 +273,8 @@ class GameDisplay(InstructionGroup):
 
     def listen_collision_powerup(self, player):
         for powerup in self.powerups:
-            ## TODO(clhsu): track powerup collisions
-            pass
+            if powerup.get_pos()[0] < player.get_pos()[0] < powerup.get_pos()[0] + POWERUP_LENGTH or powerup.get_pos()[0] < player.get_pos()[0] + PLAYER_WIDTH < powerup.get_pos()[0] + POWERUP_LENGTH:
+                if powerup.get_pos()[1] < player.get_pos()[1] < powerup.get_pos()[1] + POWERUP_LENGTH or powerup.get_pos()[1] < player.get_pos()[1] + PLAYER_HEIGHT < powerup.get_pos()[1] + POWERUP_LENGTH:
+                    powerup.activate()
+                    return powerup
+        return None
