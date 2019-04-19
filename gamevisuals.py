@@ -26,12 +26,21 @@ RIGHT_SPEED = (SCREEN_WIDTH - PLAYER_X)/SECONDS_FROM_RIGHT_TO_PLAYER  # pixels/s
 FALL_SPEED = ()
 GROUND_Y = int(SCREEN_HEIGHT / 5)
 
+BLOCK_HEIGHT = int(SCREEN_HEIGHT / 15)
+BLOCK_UNIT_LENGTH = int(SCREEN_WIDTH/4)
+
 PLAYER_HEIGHT = int(SCREEN_HEIGHT / 5)
 PLAYER_WIDTH = int(SCREEN_HEIGHT / 15)
 
+POWERUP_LENGTH = int(SCREEN_WIDTH/20)
+
+TEXTURES = {'rewind':None}
+
+gravity = np.array((0, -1800))
+
 
 class Player(InstructionGroup):
-    def __init__(self):
+    def __init__(self, listen_collision_blocks=None, listen_collision_ground=None, listen_collision_powerup=None):
         super(Player, self).__init__()
         self.pos = (PLAYER_X, GROUND_Y)
         self.texture = Image('img/stick_figure.jpg').texture
@@ -41,8 +50,19 @@ class Player(InstructionGroup):
 
         self.jump_anim = None
         self.fall_on = False
+        self.fall_vel = np.array((0,0), dtype=np.float)
 
         self.dt = 0
+
+        self.listen_collision_blocks = listen_collision_blocks
+        self.listen_collision_ground = listen_collision_ground
+        self.listen_collision_powerup = listen_collision_powerup
+
+    def get_pos(self):
+        return self.rect.pos
+
+    def set_y(self, new_y):
+        self.rect.pos = self.rect.pos[0], new_y
 
     def on_jump(self):
         current_y = self.rect.pos[1]
@@ -60,24 +80,84 @@ class Player(InstructionGroup):
             self.dt += dt
         elif self.fall_on:
             ## PHYSICS FALLING CODE
+            self.fall_vel += gravity*dt
+            self.rect.pos += self.fall_vel * dt
 
         if self.jump_anim and self.dt > 0.35:
             self.dt = 0
             self.fall_on = True
             self.jump_anim = None
 
-        ## WATCH FOR COLLISIONS
+        if self.listen_collision_blocks:
+            collision = self.listen_collision_blocks(self) or self.listen_collision_ground(self)
+            if collision:
+                self.fall_on = False
+                self.fall_vel = np.array((0, 0), dtype=np.float)
+            else:
+                self.fall_on = True
+                self.dt = 0
+                self.jump_anim = None
+
+            powerup_collision = self.listen_collision_powerup(self)
         return True
 
 
 class Block(InstructionGroup):
-    def __init__(self, pos, color):
+    def __init__(self, pos, color, units):
         super(Block, self).__init__()
+        self.pos = pos
+        self.color = color
+        self.add(self.color)
+        self.block = Rectangle(pos=self.pos, size=[units * BLOCK_UNIT_LENGTH, BLOCK_HEIGHT])
+        self.add(self.block)
+
+    def on_update(self, dt):
+        self.block.pos -= np.array([dt* RIGHT_SPEED, 0])
+        return self.fell_offscreen()
+
+    def fell_offscreen(self):
+        return not self.block.pos[0] + self.block.size[0] < 0
+
+    def get_pos(self):
+        return self.block.pos
+
+    def get_size(self):
+        return self.block.size
+
+
+class Ground(InstructionGroup):
+    def __init__(self):
+        super(Ground, self).__init__()
+        self.rect = Rectangle(pos=(0,0), size=[SCREEN_WIDTH, GROUND_Y])
+
+    def on_update(self, dt):
+        return True
+
+    def get_pos(self):
+        return self.rect.pos
 
 
 class Powerup(InstructionGroup):
     def __init__(self, pos, powerup_type):
         super(Powerup, self).__init__()
+        self.pos = pos
+        self.texture = TEXTURES[powerup_type]
+        self.powerup = Rectangle(pos=self.pos, size=[POWERUP_LENGTH, POWERUP_LENGTH],texture=self.texture)
+        self.add(self.powerup)
+        self.triggered = False
+
+    def on_update(self, dt):
+        self.powerup.pos -= np.array([dt * RIGHT_SPEED, 0])
+        return self.fell_offscreen()
+
+    def fell_offscreen(self):
+        return not self.powerup.pos[0] + self.powerup.size[0] < 0 or self.triggered
+
+    def get_pos(self):
+        return self.powerup.pos
+
+    def get_size(self):
+        return self.powerup.size
 
 
 class GameDisplay(InstructionGroup):
@@ -88,7 +168,13 @@ class GameDisplay(InstructionGroup):
         self.color = Color(1,1,1)
         self.add(self.color)
 
-        self.add(Player())
+        self.player = Player(listen_collision_blocks=self.listen_collision_block,
+                        listen_collision_ground=self.listen_collision_ground,
+                             listen_collision_powerup=self.listen_collision_powerup)
+
+        self.add(self.player)
+        self.ground = Ground()
+        self.add(self.ground)
 
         self.current_frame = 0
         self.current_block = 0  # current block to add from song_data
@@ -104,10 +190,11 @@ class GameDisplay(InstructionGroup):
 
     def on_button_down(self, key_pressed):
         if key_pressed == 'w':
-            self.jump_on()
+            self.player.on_jump()
 
     def on_button_up(self, key_pressed):
-        self.jump_off()
+        if key_pressed == 'w':
+            self.player.on_fall()
 
     # call every frame to make gems and barlines flow down the screen
     def on_update(self, dt):
@@ -157,3 +244,26 @@ class GameDisplay(InstructionGroup):
     # update the local current frame variable
     def update_frame(self, frame):
         self.current_frame = frame
+
+    def listen_collision_block(self, player):
+        for block in self.blocks:
+            if block.get_pos()[0] < player.get_pos()[0] < block.get_pos()[0] + block.get_size()[0]:
+                if block.get_pos()[1] < player.get_pos()[1] <= block.get_pos()[1] + BLOCK_HEIGHT:
+                    # FALL ONTO A NEW BLOCK
+                    player.set_y(block.get_pos()[1] + BLOCK_HEIGHT)
+                    return True
+                elif block.get_pos()[1] < player.get_pos()[1] + PLAYER_HEIGHT < block.get_pos()[1] + BLOCK_HEIGHT:
+                    # jump up into a block (just fall back down)
+                    return False
+        return False
+
+    def listen_collision_ground(self, player):
+        if player.get_pos()[1] <= GROUND_Y:
+            player.set_y(GROUND_Y)
+            return True
+        return False
+
+    def listen_collision_powerup(self, player):
+        for powerup in self.powerups:
+            ## TODO(clhsu): track powerup collisions
+            pass
