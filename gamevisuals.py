@@ -29,15 +29,15 @@ RIGHT_SPEED = (SCREEN_WIDTH - PLAYER_X)/SECONDS_FROM_RIGHT_TO_PLAYER  # pixels/s
 FALL_SPEED = ()
 GROUND_Y = int(SCREEN_HEIGHT / 5)
 
-BLOCK_HEIGHT = int(SCREEN_HEIGHT / 15)
+BLOCK_HEIGHT = int(SCREEN_HEIGHT / 20)
 BLOCK_UNIT_LENGTH = int(SCREEN_WIDTH/4)
 
-PLAYER_HEIGHT = int(SCREEN_HEIGHT / 5)
+PLAYER_HEIGHT = int(3 * SCREEN_HEIGHT / 20)
 PLAYER_WIDTH = int(SCREEN_HEIGHT / 15)
 
 POWERUP_LENGTH = int(SCREEN_WIDTH/20)
 
-TEXTURES = {'rewind':None}
+TEXTURES = {'rewind':None,'riser':"img/riser.png"}
 
 gravity = np.array((0, -1800))
 
@@ -148,7 +148,9 @@ class Block(InstructionGroup):
 class Ground(InstructionGroup):
     def __init__(self):
         super(Ground, self).__init__()
+        self.add(Color(1,1,1))
         self.rect = Rectangle(pos=(0,0), size=[SCREEN_WIDTH, GROUND_Y])
+        self.add(self.rect)
 
     def on_update(self, dt):
         return True
@@ -195,7 +197,7 @@ class Powerup(InstructionGroup):
 ##
 # WRAPPER CLASS FOR THE GAME DISPLAY
 # args: song_data, powerup_data: annotations indicating where blocks and powerups should be, respectively.
-# song_data: [sec, measure, # units]
+# song_data: [sec, measure, y_index, # units]
 # powerup_data: [sec, measure, powerup_str]
 # this class contains the PLAYER object, GROUND object, and all POWERUPS AND BLOCKS on screen
 class GameDisplay(InstructionGroup):
@@ -223,13 +225,19 @@ class GameDisplay(InstructionGroup):
 
         self.paused = True
 
+        self.index_to_y = [int(SCREEN_HEIGHT/5), int(SCREEN_HEIGHT * 2/5), int(SCREEN_HEIGHT*3/5)]
+
     # toggle paused of game or not
     def toggle(self):
         self.paused = not self.paused
 
     def on_button_down(self, key_pressed):
         if key_pressed == 'w':
+            print("jump")
             self.player.on_jump()
+        elif key_pressed == 'p':
+            print("Toggle play")
+            self.toggle()
 
     def on_button_up(self, key_pressed):
         if key_pressed == 'w':
@@ -264,16 +272,17 @@ class GameDisplay(InstructionGroup):
             # COMPARE ANNOTATION NOTES TO CURRENT FRAME AND ADD NEW OBJECTS ACCORDINGLY
             if self.current_block < len(self.song_data) and self.current_frame / Audio.sample_rate > \
                             self.song_data[self.current_block][0] - SECONDS_FROM_RIGHT_TO_PLAYER:
-                y_pos = self.song_data[self.current_block][1] - 1
-                new_block = Block((self.index_to_y[y_pos], SCREEN_WIDTH), Color(1,1,1))
+                y_pos = self.song_data[self.current_block][1]
+                units = self.song_data[self.current_block][2]
+                new_block = Block((self.index_to_y[y_pos], SCREEN_WIDTH), Color(1,1,1), units)
                 self.blocks.add(new_block)
                 self.add(new_block)
                 self.current_block += 1
 
             if self.current_powerup < len(self.powerup_data) and self.current_frame / Audio.sample_rate > self.powerup_data[
-                self.current_powerup] - SECONDS_FROM_RIGHT_TO_PLAYER:
-                y_pos = self.powerup_data[self.current_powerup][1] - 1
-                p_type = self.powerup_data[self.current_powerup][2] - 1
+                self.current_powerup][0] - SECONDS_FROM_RIGHT_TO_PLAYER:
+                y_pos = self.powerup_data[self.current_powerup][1]
+                p_type = self.powerup_data[self.current_powerup][2]
                 new_powerup = Powerup((self.index_to_y[y_pos], SCREEN_WIDTH), p_type)
                 self.powerups.add(new_powerup)
                 self.add(new_powerup)
