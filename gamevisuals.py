@@ -27,7 +27,7 @@ PLAYER_X = int(SCREEN_WIDTH / 6)
 SECONDS_FROM_RIGHT_TO_PLAYER = 4
 RIGHT_SPEED = (SCREEN_WIDTH - PLAYER_X)/SECONDS_FROM_RIGHT_TO_PLAYER  # pixels/second
 FALL_SPEED = ()
-GROUND_Y = int(SCREEN_HEIGHT / 5)
+GROUND_Y = int(SCREEN_HEIGHT / 10)
 
 BLOCK_HEIGHT = int(SCREEN_HEIGHT / 20)
 BLOCK_UNIT_LENGTH = int(SCREEN_WIDTH/4)
@@ -55,7 +55,7 @@ class Player(InstructionGroup):
         self.pos = (PLAYER_X, GROUND_Y)
         self.texture = Image('img/stick_figure.jpg').texture
         self.add(Color(1,1,1,0.5))
-        self.rect = Rectangle(pos=self.pos, size=(PLAYER_WIDTH, PLAYER_HEIGHT))
+        self.rect = Rectangle(pos=self.pos, size=(PLAYER_WIDTH, PLAYER_HEIGHT), texture=self.texture)
         self.add(self.rect)
 
         self.jump_anim = None
@@ -79,10 +79,11 @@ class Player(InstructionGroup):
         max_y = self.rect.pos[1] + int(7 * SCREEN_HEIGHT / 20)
         slow_down_y_1 = self.rect.pos[1] + int(SCREEN_HEIGHT / 5)
         slow_down_y_2 = self.rect.pos[1] + int(3 * SCREEN_HEIGHT / 10)
-        self.jump_anim = KFAnim((0,current_y), (0.1, slow_down_y_1), (0.2, slow_down_y_2), (0.35, max_y))
+        self.jump_anim = KFAnim((0,current_y), (0.2, slow_down_y_1), (0.3, slow_down_y_2), (0.5, max_y))
+        self.fall_on = False
 
     def on_fall(self):
-        self.fall_on = True
+        self.reset_on_fall()
 
     def on_update(self, dt):
         if self.jump_anim:
@@ -91,24 +92,27 @@ class Player(InstructionGroup):
         elif self.fall_on:
             self.fall_vel += gravity*dt
             self.rect.pos += self.fall_vel * dt
-
-        if self.jump_anim and self.dt > 0.35:
-            self.dt = 0
-            self.fall_on = True
             self.jump_anim = None
+            self.dt = 0
+
+        if self.jump_anim and self.dt > 0.5:
+            self.reset_on_fall()
 
         if self.listen_collision_blocks:
             collision = self.listen_collision_blocks(self) or self.listen_collision_ground(self)
             if collision:
                 self.fall_on = False
                 self.fall_vel = np.array((0, 0), dtype=np.float)
-            else:
-                self.fall_on = True
-                self.dt = 0
-                self.jump_anim = None
+            elif self.get_pos()[1] > GROUND_Y and not self.jump_anim:
+                self.reset_on_fall()
 
             powerup = self.listen_collision_powerup(self)
         return True
+
+    def reset_on_fall(self):
+        self.dt = 0
+        self.jump_anim = None
+        self.fall_on = True
 
 
 ##
@@ -241,11 +245,13 @@ class GameDisplay(InstructionGroup):
 
     def on_button_up(self, key_pressed):
         if key_pressed == 'w':
+            print("button up")
             self.player.on_fall()
 
     # call every frame to make blocks and powerups flow towards player
     def on_update(self, dt):
         if not self.paused:
+            self.player.on_update(dt)
             removed_items = set()
 
             # UPDATE EACH POWERUP AND BLOCK, AND TRACK IF THEY ARE REMOVED OR NOT FROM THE GAME FRAME
@@ -312,7 +318,7 @@ class GameDisplay(InstructionGroup):
 
     # listener for player collision with ground
     def listen_collision_ground(self, player):
-        if player.get_pos()[1] <= GROUND_Y:
+        if player.get_pos()[1] < GROUND_Y:
             player.set_y(GROUND_Y)
             return True
         return False
