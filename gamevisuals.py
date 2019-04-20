@@ -11,12 +11,15 @@ from kivy.core.window import Window
 from kivy.graphics.instructions import InstructionGroup
 from kivy.graphics import Color, Ellipse, Line, Rectangle
 from kivy.core.image import Image
-from kivy.graphics import PushMatrix, PopMatrix, Translate, Scale, Rotate
-from kivy.clock import Clock as kivyClock
 
 import random
 import numpy as np
 import bisect
+
+
+##
+# CONSTANTS
+##
 
 SCREEN_WIDTH = Window.size[0]
 SCREEN_HEIGHT = Window.size[1]
@@ -39,6 +42,13 @@ TEXTURES = {'rewind':None}
 gravity = np.array((0, -1800))
 
 
+##
+# PLAYER CLASS -
+#   Object that contains player icon
+#   arguments: listener functions
+#   graphics regarding falling and jumping.
+#   listens for collisions with blocks, powerups and ground.
+##
 class Player(InstructionGroup):
     def __init__(self, listen_collision_blocks=None, listen_collision_ground=None, listen_collision_powerup=None):
         super(Player, self).__init__()
@@ -79,7 +89,6 @@ class Player(InstructionGroup):
             self.rect.pos = self.rect.pos[0], self.jump_anim.eval(self.dt)
             self.dt += dt
         elif self.fall_on:
-            ## PHYSICS FALLING CODE
             self.fall_vel += gravity*dt
             self.rect.pos += self.fall_vel * dt
 
@@ -102,6 +111,13 @@ class Player(InstructionGroup):
         return True
 
 
+##
+# BLOCK CLASS -
+# contains blocks for game
+#   args: position pos (x,y) for each block object
+#   args: color to make the block
+#   units: number of square blocks in a row to create the whole block.
+##
 class Block(InstructionGroup):
     def __init__(self, pos, color, units):
         super(Block, self).__init__()
@@ -125,6 +141,10 @@ class Block(InstructionGroup):
         return self.block.size
 
 
+##
+# GROUND CLASS
+#   DOES NOT MOVE, CONSTANT RECTANGLE
+##
 class Ground(InstructionGroup):
     def __init__(self):
         super(Ground, self).__init__()
@@ -137,6 +157,13 @@ class Ground(InstructionGroup):
         return self.rect.pos
 
 
+##
+# POWERUP CLASS
+# object containing each powerup in the game
+# args: position (x,y) for initial position for powerup
+# args: powerup_type (string? integer?) that contributes to determining texture of block
+# args: activation_listener - passed in function that is activated when powerup is run into
+# waits to see powerup is activated (and whether it should be taken off canvas)
 class Powerup(InstructionGroup):
     def __init__(self, pos, powerup_type, activation_listener=None):
         super(Powerup, self).__init__()
@@ -165,6 +192,12 @@ class Powerup(InstructionGroup):
         self.triggered = True
 
 
+##
+# WRAPPER CLASS FOR THE GAME DISPLAY
+# args: song_data, powerup_data: annotations indicating where blocks and powerups should be, respectively.
+# song_data: [sec, measure, # units]
+# powerup_data: [sec, measure, powerup_str]
+# this class contains the PLAYER object, GROUND object, and all POWERUPS AND BLOCKS on screen
 class GameDisplay(InstructionGroup):
     def __init__(self, song_data, powerup_data):
         super(GameDisplay, self).__init__()
@@ -182,14 +215,15 @@ class GameDisplay(InstructionGroup):
         self.add(self.ground)
 
         self.current_frame = 0
-        self.current_block = 0  # current block to add from song_data
-        self.current_powerup = 0
+        self.current_block = 0  # current block ind to add from song_data
+        self.current_powerup = 0  # current powerup ind to add from powerup_data
 
-        self.blocks = set()
-        self.powerups = set()
+        self.blocks = set()  # on-screen blocks
+        self.powerups = set()  # on-screen powerups
 
         self.paused = True
 
+    # toggle paused of game or not
     def toggle(self):
         self.paused = not self.paused
 
@@ -201,13 +235,14 @@ class GameDisplay(InstructionGroup):
         if key_pressed == 'w':
             self.player.on_fall()
 
-    # call every frame to make gems and barlines flow down the screen
+    # call every frame to make blocks and powerups flow towards player
     def on_update(self, dt):
         if not self.paused:
             removed_items = set()
 
-            # UPDATE EACH GEM AND BAR, AND TRACK IF THEY ARE REMOVED OR NOT FROM THE GAME FRAME
-            # For gems, track if a gem was completely missed.
+            # UPDATE EACH POWERUP AND BLOCK, AND TRACK IF THEY ARE REMOVED OR NOT FROM THE GAME FRAME
+            # For blocks, track if a block goes off screen
+            # for powerups, track if a powerup is activated or go off screen
             # remove removed items from the animation.
             for block in self.blocks:
                 kept = block.on_update(dt)
@@ -250,6 +285,7 @@ class GameDisplay(InstructionGroup):
     def update_frame(self, frame):
         self.current_frame = frame
 
+    # listener for player with block objects
     def listen_collision_block(self, player):
         for block in self.blocks:
             if block.get_pos()[0] < player.get_pos()[0] < block.get_pos()[0] + block.get_size()[0] \
@@ -265,12 +301,14 @@ class GameDisplay(InstructionGroup):
                     return False
         return False
 
+    # listener for player collision with ground
     def listen_collision_ground(self, player):
         if player.get_pos()[1] <= GROUND_Y:
             player.set_y(GROUND_Y)
             return True
         return False
 
+    # listener for player with powerups objects
     def listen_collision_powerup(self, player):
         for powerup in self.powerups:
             if powerup.get_pos()[0] < player.get_pos()[0] < powerup.get_pos()[0] + POWERUP_LENGTH or powerup.get_pos()[0] < player.get_pos()[0] + PLAYER_WIDTH < powerup.get_pos()[0] + POWERUP_LENGTH:
