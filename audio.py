@@ -25,7 +25,7 @@ class AudioManager(object):
         super(AudioManager, self).__init__()
         self.audio = Audio(2)
         self.mixer = Mixer()
-        self.song = WaveGenerator(WaveFile(audiofile))
+        self.song = SpeedModulator(WaveGenerator(WaveFile(audiofile)))
         self.sfx = Synth("data/FluidR3_GM.sf2")
         self.volume = 100
         self.powerup_note = 69
@@ -124,7 +124,6 @@ class SpeedModulator(object):
         self.generator = generator
         self.speed = speed
         self.continue_flag = True
-        pass
 
     def set_speed(self, speed) :
         self.speed = speed
