@@ -232,7 +232,7 @@ class GameDisplay(InstructionGroup):
 
         self.index_to_y = [int(SCREEN_HEIGHT/5), int(SCREEN_HEIGHT * 2/5), int(SCREEN_HEIGHT*3/5)]
 
-        self.powerup_listeners = {'powerup_note':self.audio_manager.play_powerup_effect, 'lower_volume': self.audio_manager.lower_volume, 'raise_volume': self.audio_manager.raise_volume, 'error': self.audio_manager.play_error}
+        self.powerup_listeners = {'powerup_note':self.audio_manager.play_powerup_effect, 'lower_volume': self.audio_manager.lower_volume, 'raise_volume': self.audio_manager.raise_volume, 'error': self.audio_manager.play_error_effect}
 
     # toggle paused of game or not
     def toggle(self):
