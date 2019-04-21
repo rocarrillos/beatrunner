@@ -10,6 +10,7 @@ from common.wavegen import *
 from common.wavesrc import *
 
 import numpy as np
+import math
 
 ###############################################
 # DESIGN:
@@ -23,7 +24,7 @@ class AudioManager(object):
         super(AudioManager, self).__init__()
         self.audio = Audio(2)
         self.mixer = Mixer()
-        self.song = WaveGenerator(WaveFile(audiofile))
+        self.song = SpeedModulator(WaveGenerator(WaveFile(audiofile)))
         self.sfx = Synth("data/FluidR3_GM.sf2")
         self.volume = 100
         self.powerup_note = 69
@@ -46,6 +47,7 @@ class AudioManager(object):
     def toggle(self):
         self.active = not self.active
 
+    # VOLUME EFFECTS
     def lower_volume(self):
         # reduce volume by half
         self.volume = self.volume * 0.5
@@ -56,6 +58,7 @@ class AudioManager(object):
         self.volume = min(self.volume * 2, 100)
         self.mixer.set_gain(self.volume)
 
+    # SOUND EFFECTS
     def play_error_effect(self):
         self.sfx.noteon(0, self.error_note, self.effect_volume)
 
@@ -86,6 +89,7 @@ class AudioManager(object):
     def stop_win_effect(self):
         self.sfx.noteoff(4, self.powerup_note)
 
+    # MAIN TRACK EFFECTS
     def bass_boost(self):
         pass
 
@@ -98,6 +102,100 @@ class AudioManager(object):
     def ethereal(self):
         pass
 
+    def speedup(self):
+        self.song.set_speed(self.song.get_speed() * 2**(1/12))
+
+    def slowdown(self):
+        self.song.set_speed(self.song.get_speed() / 2**(1/12))
+
+    def reset_speed(self):
+        self.song.set_speed(1)
+
     def on_update(self):
         if self.active:
             self.audio.on_update()
+
+# Decided to include SpeedModulator for speedup/slowdown and key change effect
+class SpeedModulator(object):
+    def __init__(self, generator, speed = 1.0):
+        super(SpeedModulator, self).__init__()
+        self.generator = generator
+        self.speed = speed
+        self.continue_flag = True
+        pass
+
+    def set_speed(self, speed) :
+        self.speed = speed
+
+    def get_speed(self):
+        return self.speed
+
+    def release(self):
+        self.continue_flag = False
+
+    def generate(self, num_frames, num_channels) :
+        # this is the fun part lol
+        if num_channels == 2:
+            frames_to_make = int(num_frames * num_channels * self.speed)
+            frames_to_make = frames_to_make + frames_to_make % num_channels # to round it out
+            # we have the number of frames we need to extract from the generator
+            frames = self.generator.generate(int(frames_to_make / num_channels), num_channels)[0]
+            # we have the frames. Now we need to interpolate
+            lframes = frames[::2]
+            rframes = frames[1::2]
+            lneeds = np.linspace(0, len(lframes), num_frames)
+            lhaves = np.arange(0, len(lframes))
+            rneeds = np.linspace(0, len(rframes), num_frames)
+            rhaves = np.arange(0, len(rframes))
+            lframes = np.interp(lneeds, lhaves, lframes)
+            rframes = np.interp(rneeds, rhaves, rframes)
+            output = np.empty(num_channels * num_frames, dtype=lframes.dtype)
+            output[0::2] = lframes
+            output[1::2] = rframes
+        else:
+            frames = self.generator.generate(int(num_frames * self.speed))
+            needs = np.linspace(0, len(frames), num_frames)
+            output = np.interp(needs, np.arange(0, len(frames), num_frames), frames)
+        return (output, self.continue_flag)
+
+# Functions for applying audio filters
+class Filter(object):
+    def __init__(self, generator, filter_pass="low"):
+        super(Filter, self).__init__()
+        self.generator = generator
+        self.filter_pass = filter_pass
+        self.cutoff = 400.0 # just as default
+        self.samplerate = 44100
+        self.continue_flag = True
+        self.active = False
+
+    def release(self):
+        self.continue_flag = False
+
+    def change_pass(self, new_pass):
+        valids = ["low", "high", "band"]
+        if new_pass in valids:
+            self.active = True
+            self.filter_pass = new_pass
+            if new_pass == valids[0]:
+                self.cutoff = 400.0
+            elif new_pass == valids[1]:
+                self.cutoff = 600.0
+            else:
+                self.cutoff = 800.0
+        elif new_pass == "reset":
+            self.active = False
+
+    def generate(self, num_frames, num_channels):
+        frames = self.generator.generate(num_frames * num_channels, num_channels)[0]
+        if self.active:
+            freq_ratio = self.cutoff * self.samplerate
+            n = int(math.sqrt(0.196196 + freq_ratio**2) / freq_ratio)
+            frames = running_mean(frames, n)
+        return frames, self.continue_flag
+
+
+
+def running_mean(x, windowsize):
+    cumesum = np.cumsum(np.insert(x, 0, 0))
+    return (cumesum[windowsize:] - cumesum[:-windowsize]) / windowsize
