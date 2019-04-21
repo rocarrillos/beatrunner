@@ -19,6 +19,7 @@ import math
 # This will have to happen via envelopes
 # FX will happen via the Synth functionality
 
+
 class AudioManager(object):
     def __init__(self, audiofile):
         super(AudioManager, self).__init__()
