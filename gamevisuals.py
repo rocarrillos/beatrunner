@@ -205,10 +205,11 @@ class Powerup(InstructionGroup):
 # powerup_data: [sec, measure, powerup_str]
 # this class contains the PLAYER object, GROUND object, and all POWERUPS AND BLOCKS on screen
 class GameDisplay(InstructionGroup):
-    def __init__(self, song_data, powerup_data):
+    def __init__(self, song_data, powerup_data, audio_manager):
         super(GameDisplay, self).__init__()
         self.song_data = song_data
         self.powerup_data = powerup_data
+        self.audio_manager = audio_manager
         self.color = Color(1,1,1)
         self.add(self.color)
 

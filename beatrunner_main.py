@@ -7,9 +7,10 @@ class MainWidget(BaseWidget) :
     def __init__(self):
         super(MainWidget, self).__init__()
         self.anim_group = AnimGroup()
+        self.audio_manager = AudioManager(## file ##)
         self.song_data = SongData()
-        self.song_data.read_data("test_data/block_data.txt","test_data/powerup_data.txt")
-        self.game_display = GameDisplay(self.song_data.blocks, self.song_data.powerups)
+        self.song_data.read_data("test_data/block_data.txt", "test_data/powerup_data.txt")
+        self.game_display = GameDisplay(self.song_data.blocks, self.song_data.powerups, self.audio_manager)
         self.anim_group.add(self.game_display)
 
         self.playing = False
@@ -24,6 +25,9 @@ class MainWidget(BaseWidget) :
 
         if keycode[1] == 'z':
             pass
+        
+        if keycode[1] == 'w':
+            self.audio_manager.play_jump_effect()
 
     def on_key_up(self, keycode):
         self.game_display.on_button_up(keycode[1])
