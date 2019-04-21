@@ -25,7 +25,7 @@ class MainWidget(BaseWidget) :
 
         if keycode[1] == 'z':
             pass
-        
+
         if keycode[1] == 'w':
             self.audio_manager.play_jump_effect()
 

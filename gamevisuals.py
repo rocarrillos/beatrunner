@@ -37,7 +37,7 @@ PLAYER_WIDTH = int(SCREEN_HEIGHT / 15)
 
 POWERUP_LENGTH = int(SCREEN_WIDTH/20)
 
-TEXTURES = {'rewind':None,'riser':"img/riser.png"}
+TEXTURES = {'rewind':None,'riser':"img/riser.png","lower_volume":"img/arrowdownred.png"}
 
 gravity = np.array((0, -1800))
 
@@ -232,6 +232,8 @@ class GameDisplay(InstructionGroup):
 
         self.index_to_y = [int(SCREEN_HEIGHT/5), int(SCREEN_HEIGHT * 2/5), int(SCREEN_HEIGHT*3/5)]
 
+        self.powerup_listeners = {'powerup_note':self.audio_manager.play_powerup_effect, 'lower_volume': self.audio_manager.lower_volume, 'raise_volume': self.audio_manager.raise_volume, 'error': self.audio_manager.play_error_effect}
+
     # toggle paused of game or not
     def toggle(self):
         self.paused = not self.paused
@@ -290,7 +292,7 @@ class GameDisplay(InstructionGroup):
                 self.current_powerup][0] - SECONDS_FROM_RIGHT_TO_PLAYER:
                 y_pos = self.powerup_data[self.current_powerup][1]
                 p_type = self.powerup_data[self.current_powerup][2]
-                new_powerup = Powerup((self.index_to_y[y_pos], SCREEN_WIDTH), p_type)
+                new_powerup = Powerup((self.index_to_y[y_pos], SCREEN_WIDTH), p_type, self.powerup_listeners[p_type])
                 self.powerups.add(new_powerup)
                 self.add(new_powerup)
                 self.current_powerup += 1
