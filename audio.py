@@ -25,7 +25,7 @@ class AudioManager(object):
         super(AudioManager, self).__init__()
         self.audio = Audio(2)
         self.mixer = Mixer()
-        self.song = SpeedModulator(WaveGenerator(WaveFile(audiofile)))
+        self.song = WaveGenerator(WaveFile(audiofile))
         self.sfx = Synth("data/FluidR3_GM.sf2")
         self.volume = 100
         self.powerup_note = 69
@@ -43,6 +43,7 @@ class AudioManager(object):
         # hook everything up
         self.mixer.add(self.song)
         self.mixer.add(self.sfx)
+        self.audio.set_generator(self.mixer)
         self.active = True
         
     def toggle(self):
