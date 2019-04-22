@@ -37,7 +37,9 @@ PLAYER_WIDTH = int(SCREEN_HEIGHT / 15)
 
 POWERUP_LENGTH = int(SCREEN_WIDTH/20)
 
-TEXTURES = {'rewind':None,'riser':"img/riser.png","lower_volume":"img/arrowdownred.png"}
+TEXTURES = {'vocals_boost': Image("img/mic.jpg").texture, 'bass_boost': Image("img/bass.jpg").texture,
+            'powerup_note':Image("img/riser.png").texture,"lower_volume":Image("img/arrowdownred.png").texture,
+            "raise_volume": Image("img/uparrowred.png").texture}
 
 gravity = np.array((0, -1800))
 
@@ -50,11 +52,11 @@ gravity = np.array((0, -1800))
 #   listens for collisions with blocks, powerups and ground.
 ##
 class Player(InstructionGroup):
-    def __init__(self, listen_collision_blocks=None, listen_collision_ground=None, listen_collision_powerup=None):
+    def __init__(self, listen_collision_above_blocks=None, listen_collision_ground=None, listen_collision_powerup=None, listen_collision_below_blocks=None):
         super(Player, self).__init__()
         self.pos = (PLAYER_X, GROUND_Y)
-        self.texture = Image('img/stick_figure.jpg').texture
-        self.add(Color(1,1,1,0.5))
+        self.texture = Image('img/shark_figure.jpg').texture
+        self.add(Color(1,1,1))
         self.rect = Rectangle(pos=self.pos, size=(PLAYER_WIDTH, PLAYER_HEIGHT), texture=self.texture)
         self.add(self.rect)
 
@@ -64,7 +66,8 @@ class Player(InstructionGroup):
 
         self.dt = 0
 
-        self.listen_collision_blocks = listen_collision_blocks
+        self.listen_collision_above_blocks = listen_collision_above_blocks
+        self.listen_collision_below_blocks = listen_collision_below_blocks
         self.listen_collision_ground = listen_collision_ground
         self.listen_collision_powerup = listen_collision_powerup
 
@@ -87,6 +90,7 @@ class Player(InstructionGroup):
         self.reset_on_fall()
 
     def on_update(self, dt):
+        # print("jump anim: ", self.jump_anim, "fall on: ", self.fall_on, "dt", self.dt, "fall vel", self.fall_vel, "rect pos", self.rect.pos)
         if self.jump_anim:
             self.rect.pos = self.rect.pos[0], self.jump_anim.eval(self.dt)
             self.dt += dt
@@ -95,19 +99,23 @@ class Player(InstructionGroup):
             self.rect.pos += self.fall_vel * dt
             self.jump_anim = None
             self.dt = 0
-
+        # print("position", self.rect.pos, self.fall_vel * dt)
         if self.jump_anim and self.dt > 0.5:
             self.reset_on_fall()
 
-        if self.listen_collision_blocks:
-            collision = self.listen_collision_blocks(self) or self.listen_collision_ground(self)
+        if self.listen_collision_below_blocks and self.listen_collision_ground:
+            collision = self.listen_collision_below_blocks(self) or self.listen_collision_ground(self)
             if collision:
                 self.fall_on = False
                 self.fall_vel = np.array((0, 0), dtype=np.float)
             elif self.get_pos()[1] > GROUND_Y and not self.jump_anim:
                 self.reset_on_fall()
 
-            powerup = self.listen_collision_powerup(self)
+        if self.listen_collision_above_blocks:
+            collision = self.listen_collision_above_blocks(self) and not self.fall_on
+            if collision:
+                self.reset_on_fall()
+        powerup = self.listen_collision_powerup(self)
         return True
 
     def reset_on_fall(self):
@@ -129,21 +137,28 @@ class Block(InstructionGroup):
         self.pos = pos
         self.color = color
         self.add(self.color)
-        self.block = Rectangle(pos=self.pos, size=[units * BLOCK_UNIT_LENGTH, BLOCK_HEIGHT])
-        self.add(self.block)
+        self.blocks = []
+        for i in range(units):
+            block = Rectangle(pos=self.pos + np.array([BLOCK_UNIT_LENGTH * i, 0]),
+                                         size=[BLOCK_UNIT_LENGTH, BLOCK_HEIGHT],
+                                         texture=Image("img/wave.png").texture)
+            self.blocks.append(block)
+            self.add(block)
+        self.size = [BLOCK_UNIT_LENGTH * units, BLOCK_HEIGHT]
 
     def on_update(self, dt):
-        self.block.pos -= np.array([dt* RIGHT_SPEED, 0])
-        return self.fell_offscreen()
+        for block in self.blocks:
+            block.pos -= np.array([dt* RIGHT_SPEED, 0])
+        return not self.fell_offscreen()
 
     def fell_offscreen(self):
-        return not self.block.pos[0] + self.block.size[0] < 0
+        return self.blocks[-1].pos[0] + self.blocks[-1].size[0] < 0
 
     def get_pos(self):
-        return self.block.pos
+        return self.blocks[0].pos
 
     def get_size(self):
-        return self.block.size
+        return self.size
 
 
 ##
@@ -154,7 +169,7 @@ class Ground(InstructionGroup):
     def __init__(self):
         super(Ground, self).__init__()
         self.add(Color(1,1,1))
-        self.rect = Rectangle(pos=(0,0), size=[SCREEN_WIDTH, GROUND_Y])
+        self.rect = Rectangle(pos=(0,0), size=[SCREEN_WIDTH, GROUND_Y], texture=Image("img/sand.png").texture)
         self.add(self.rect)
 
     def on_update(self, dt):
@@ -183,10 +198,10 @@ class Powerup(InstructionGroup):
 
     def on_update(self, dt):
         self.powerup.pos -= np.array([dt * RIGHT_SPEED, 0])
-        return self.fell_offscreen()
+        return not self.fell_offscreen()
 
     def fell_offscreen(self):
-        return not self.powerup.pos[0] + self.powerup.size[0] < 0 or self.triggered
+        return self.powerup.pos[0] + self.powerup.size[0] < 0 or self.triggered
 
     def get_pos(self):
         return self.powerup.pos
@@ -214,9 +229,10 @@ class GameDisplay(InstructionGroup):
         self.color = Color(1,1,1)
         self.add(self.color)
 
-        self.player = Player(listen_collision_blocks=self.listen_collision_block,
+        self.player = Player(listen_collision_above_blocks=self.listen_collision_above_block,
                         listen_collision_ground=self.listen_collision_ground,
-                             listen_collision_powerup=self.listen_collision_powerup)
+                             listen_collision_powerup=self.listen_collision_powerup,
+                             listen_collision_below_blocks=self.listen_collision_below_block)
 
         self.add(self.player)
         self.ground = Ground()
@@ -236,7 +252,9 @@ class GameDisplay(InstructionGroup):
         self.powerup_listeners = {'powerup_note':self.audio_manager.play_powerup_effect,
                                   'lower_volume': self.audio_manager.lower_volume,
                                   'raise_volume': self.audio_manager.raise_volume,
-                                  'error': self.audio_manager.play_error_effect}
+                                  'error': self.audio_manager.play_error_effect,
+                                  'bass_boost': self.audio_manager.bass_boost,
+                                  'vocals_boost': self.audio_manager.vocals_boost}
 
     # toggle paused of game or not
     def toggle(self):
@@ -267,7 +285,6 @@ class GameDisplay(InstructionGroup):
                 kept = powerup.on_update(dt)
                 if not kept:
                     removed_items.add(powerup)
-
             for item in removed_items:
                 self.remove(item)
 
@@ -280,7 +297,7 @@ class GameDisplay(InstructionGroup):
                             self.song_data[self.current_block][0] - SECONDS_FROM_RIGHT_TO_PLAYER:
                 y_pos = self.song_data[self.current_block][1]
                 units = self.song_data[self.current_block][2]
-                new_block = Block((self.index_to_y[y_pos], SCREEN_WIDTH), Color(1,1,1), units)
+                new_block = Block((SCREEN_WIDTH, self.index_to_y[y_pos-1]), Color(1,1,1), units)
                 self.blocks.add(new_block)
                 self.add(new_block)
                 self.current_block += 1
@@ -289,7 +306,7 @@ class GameDisplay(InstructionGroup):
                 self.current_powerup][0] - SECONDS_FROM_RIGHT_TO_PLAYER:
                 y_pos = self.powerup_data[self.current_powerup][1]
                 p_type = self.powerup_data[self.current_powerup][2]
-                new_powerup = Powerup((self.index_to_y[y_pos], SCREEN_WIDTH), p_type, self.powerup_listeners[p_type])
+                new_powerup = Powerup((SCREEN_WIDTH, self.index_to_y[y_pos-1]), p_type, self.powerup_listeners[p_type])
                 self.powerups.add(new_powerup)
                 self.add(new_powerup)
                 self.current_powerup += 1
@@ -301,19 +318,24 @@ class GameDisplay(InstructionGroup):
         self.current_frame = frame
 
     # listener for player with block objects
-    def listen_collision_block(self, player):
+    def listen_collision_below_block(self, player):
         for block in self.blocks:
             if block.get_pos()[0] < player.get_pos()[0] < block.get_pos()[0] + block.get_size()[0] \
                     or block.get_pos()[0] < player.get_pos()[0] + PLAYER_WIDTH < block.get_pos()[0] + block.get_size()[0]:
-
                 if block.get_pos()[1] < player.get_pos()[1] <= block.get_pos()[1] + BLOCK_HEIGHT:
                     # CASE 1: FALL ONTO A NEW BLOCK
                     player.set_y(block.get_pos()[1] + BLOCK_HEIGHT)
                     return True
-                elif block.get_pos()[1] < player.get_pos()[1] + PLAYER_HEIGHT < block.get_pos()[1] + BLOCK_HEIGHT:
-                    # CASE 2: PLAYER Top border is inside the block, which suggests a jump up into a block
-                    # (just fall back down)
-                    return False
+        return False
+
+    def listen_collision_above_block(self, player):
+        for block in self.blocks:
+            if block.get_pos()[0] < player.get_pos()[0] < block.get_pos()[0] + block.get_size()[0] \
+                    or block.get_pos()[0] < player.get_pos()[0] + PLAYER_WIDTH < block.get_pos()[0] + block.get_size()[0]:
+                if block.get_pos()[1] < player.get_pos()[1] + PLAYER_HEIGHT < block.get_pos()[1] + BLOCK_HEIGHT:
+                # CASE 2: PLAYER Top border is inside the block, which suggests a jump up into a block
+                # (just fall back down)
+                    return True
         return False
 
     # listener for player collision with ground

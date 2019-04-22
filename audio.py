@@ -31,6 +31,8 @@ class AudioManager(object):
         self.filter = Filter(self.speed_mod)
         self.sfx = Synth("data/FluidR3_GM.sf2")
         self.volume = 100
+        self.song.set_gain(0.25)
+        self.mixer.set_gain(1)
         self.powerup_note = 69
         self.error_note = 60
         self.jump_note = 75
@@ -56,12 +58,12 @@ class AudioManager(object):
     def lower_volume(self):
         # reduce volume by half
         self.volume = self.volume * 0.5
-        self.mixer.set_gain(self.volume)
+        self.mixer.set_gain(self.volume / 100)
 
     def raise_volume(self):
         # raise volume by 2x, up to 100
         self.volume = min(self.volume * 2, 100)
-        self.mixer.set_gain(self.volume)
+        self.mixer.set_gain(self.volume / 100)
 
     # SOUND EFFECTS
     def play_error_effect(self):
@@ -77,10 +79,10 @@ class AudioManager(object):
         self.sfx.noteoff(1, self.powerup_note)
 
     def play_jump_effect(self):
-        self.sfx.noteon(1, self.powerup_note, self.effect_volume)
+        self.sfx.noteon(1, self.jump_note, self.effect_volume)
 
     def stop_jump_effect(self):
-        self.sfx.noteoff(2, self.powerup_note)
+        self.sfx.noteoff(2, self.jump_note)
 
     def play_lose_effect(self):
         self.sfx.noteon(3, self.error_note, self.effect_volume)
@@ -119,9 +121,13 @@ class AudioManager(object):
     def reset_speed(self):
         self.speed_mod.set_speed(1)
 
+    def get_current_frame(self):
+        return self.song.frame
+
     def on_update(self):
         if self.active:
             self.audio.on_update()
+
 
 # Decided to include SpeedModulator for speedup/slowdown and key change effect
 class SpeedModulator(object):
@@ -164,6 +170,7 @@ class SpeedModulator(object):
             needs = np.linspace(0, len(frames), num_frames)
             output = np.interp(needs, np.arange(0, len(frames), num_frames), frames)
         return (output, self.continue_flag)
+
 
 # Functions for applying audio filters
 class Filter(object):
