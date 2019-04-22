@@ -66,6 +66,6 @@ class SongData(object):
         powerups = self.lines_from_file(poweruppath)
         for p in powerups:
             powerup = p.split()
-            self.powerups.append((float(powerup[0]), str(powerup[2])))
+            self.powerups.append((float(powerup[0]), int(powerup[2]), str(powerup[3])))
 
 run(MainWidget)

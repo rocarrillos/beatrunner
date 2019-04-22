@@ -37,7 +37,7 @@ PLAYER_WIDTH = int(SCREEN_HEIGHT / 15)
 
 POWERUP_LENGTH = int(SCREEN_WIDTH/20)
 
-TEXTURES = {'rewind':None,'riser':"img/riser.png","lower_volume":"img/arrowdownred.png"}
+TEXTURES = {'rewind':None,'powerup_note':Image("img/riser.png").texture,"lower_volume":Image("img/arrowdownred.png").texture, "raise_volume": Image("img/uparrowred.png").texture}
 
 gravity = np.array((0, -1800))
 
@@ -53,7 +53,7 @@ class Player(InstructionGroup):
     def __init__(self, listen_collision_above_blocks=None, listen_collision_ground=None, listen_collision_powerup=None, listen_collision_below_blocks=None):
         super(Player, self).__init__()
         self.pos = (PLAYER_X, GROUND_Y)
-        self.texture = Image('img/stick_figure.jpg').texture
+        self.texture = Image('img/shark_figure.jpg').texture
         self.add(Color(1,1,1,0.5))
         self.rect = Rectangle(pos=self.pos, size=(PLAYER_WIDTH, PLAYER_HEIGHT), texture=self.texture)
         self.add(self.rect)
@@ -135,21 +135,28 @@ class Block(InstructionGroup):
         self.pos = pos
         self.color = color
         self.add(self.color)
-        self.block = Rectangle(pos=self.pos, size=[units * BLOCK_UNIT_LENGTH, BLOCK_HEIGHT])
-        self.add(self.block)
+        self.blocks = []
+        for i in range(units):
+            block = Rectangle(pos=self.pos + np.array([BLOCK_UNIT_LENGTH * i, 0]),
+                                         size=[BLOCK_UNIT_LENGTH, BLOCK_HEIGHT],
+                                         texture=Image("img/wave.png").texture)
+            self.blocks.append(block)
+            self.add(block)
+        self.size = [BLOCK_UNIT_LENGTH * units, BLOCK_HEIGHT]
 
     def on_update(self, dt):
-        self.block.pos -= np.array([dt* RIGHT_SPEED, 0])
+        for block in self.blocks:
+            block.pos -= np.array([dt* RIGHT_SPEED, 0])
         return not self.fell_offscreen()
 
     def fell_offscreen(self):
-        return self.block.pos[0] + self.block.size[0] < 0
+        return self.blocks[-1].pos[0] + self.blocks[-1].size[0] < 0
 
     def get_pos(self):
-        return self.block.pos
+        return self.blocks[0].pos
 
     def get_size(self):
-        return self.block.size
+        return self.size
 
 
 ##
@@ -299,7 +306,6 @@ class GameDisplay(InstructionGroup):
                 self.powerups.add(new_powerup)
                 self.add(new_powerup)
                 self.current_powerup += 1
-                print("ADDED POWERUP")
 
         return True
 
