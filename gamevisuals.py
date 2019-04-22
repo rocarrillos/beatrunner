@@ -75,12 +75,13 @@ class Player(InstructionGroup):
         self.rect.pos = self.rect.pos[0], new_y
 
     def on_jump(self):
-        current_y = self.rect.pos[1]
-        max_y = self.rect.pos[1] + int(7 * SCREEN_HEIGHT / 20)
-        slow_down_y_1 = self.rect.pos[1] + int(SCREEN_HEIGHT / 5)
-        slow_down_y_2 = self.rect.pos[1] + int(3 * SCREEN_HEIGHT / 10)
-        self.jump_anim = KFAnim((0,current_y), (0.2, slow_down_y_1), (0.3, slow_down_y_2), (0.5, max_y))
-        self.fall_on = False
+        if not self.jump_anim and not self.fall_on:
+            current_y = self.rect.pos[1]
+            max_y = self.rect.pos[1] + int(7 * SCREEN_HEIGHT / 20)
+            slow_down_y_1 = self.rect.pos[1] + int(SCREEN_HEIGHT / 5)
+            slow_down_y_2 = self.rect.pos[1] + int(3 * SCREEN_HEIGHT / 10)
+            self.jump_anim = KFAnim((0,current_y), (0.2, slow_down_y_1), (0.3, slow_down_y_2), (0.5, max_y))
+            self.fall_on = False
 
     def on_fall(self):
         self.reset_on_fall()
@@ -228,28 +229,24 @@ class GameDisplay(InstructionGroup):
         self.blocks = set()  # on-screen blocks
         self.powerups = set()  # on-screen powerups
 
-        self.paused = True
+        self.paused = False
 
         self.index_to_y = [int(SCREEN_HEIGHT/5), int(SCREEN_HEIGHT * 2/5), int(SCREEN_HEIGHT*3/5)]
 
-        self.powerup_listeners = {'powerup_note':self.audio_manager.play_powerup_effect, 'lower_volume': self.audio_manager.lower_volume, 'raise_volume': self.audio_manager.raise_volume, 'error': self.audio_manager.play_error_effect}
+        self.powerup_listeners = {'powerup_note':self.audio_manager.play_powerup_effect,
+                                  'lower_volume': self.audio_manager.lower_volume,
+                                  'raise_volume': self.audio_manager.raise_volume,
+                                  'error': self.audio_manager.play_error_effect}
 
     # toggle paused of game or not
     def toggle(self):
         self.paused = not self.paused
 
-    def on_button_down(self, key_pressed):
-        if key_pressed == 'w':
-            print("jump")
-            self.player.on_jump()
-        elif key_pressed == 'p':
-            print("Toggle play")
-            self.toggle()
+    def on_jump(self):
+        self.player.on_jump()
 
-    def on_button_up(self, key_pressed):
-        if key_pressed == 'w':
-            print("button up")
-            self.player.on_fall()
+    def on_fall(self):
+        self.player.on_fall()
 
     # call every frame to make blocks and powerups flow towards player
     def on_update(self, dt):

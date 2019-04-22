@@ -21,7 +21,8 @@ class MainWidget(BaseWidget) :
         self.add_widget(self.label)
 
     def on_key_down(self, keycode, modifiers):
-        self.game_display.on_button_down(keycode[1])
+        if keycode[1] == 'p':
+            self.game_display.on_jump()
 
         if keycode[1] == 'z':
             pass
@@ -30,7 +31,7 @@ class MainWidget(BaseWidget) :
             self.audio_manager.play_jump_effect()
 
     def on_key_up(self, keycode):
-        self.game_display.on_button_up(keycode[1])
+        self.game_display.on_fall()
 
     def on_update(self) :
         self.label.text = "Welcome to Beat Runner\n"
