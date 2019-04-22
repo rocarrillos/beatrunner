@@ -37,7 +37,9 @@ PLAYER_WIDTH = int(SCREEN_HEIGHT / 15)
 
 POWERUP_LENGTH = int(SCREEN_WIDTH/20)
 
-TEXTURES = {'rewind':None,'powerup_note':Image("img/riser.png").texture,"lower_volume":Image("img/arrowdownred.png").texture, "raise_volume": Image("img/uparrowred.png").texture}
+TEXTURES = {'vocals_boost': Image("img/mic.jpg").texture, 'bass_boost': Image("img/bass.jpg").texture,
+            'powerup_note':Image("img/riser.png").texture,"lower_volume":Image("img/arrowdownred.png").texture,
+            "raise_volume": Image("img/uparrowred.png").texture}
 
 gravity = np.array((0, -1800))
 
@@ -54,7 +56,7 @@ class Player(InstructionGroup):
         super(Player, self).__init__()
         self.pos = (PLAYER_X, GROUND_Y)
         self.texture = Image('img/shark_figure.jpg').texture
-        self.add(Color(1,1,1,0.5))
+        self.add(Color(1,1,1))
         self.rect = Rectangle(pos=self.pos, size=(PLAYER_WIDTH, PLAYER_HEIGHT), texture=self.texture)
         self.add(self.rect)
 
@@ -167,7 +169,7 @@ class Ground(InstructionGroup):
     def __init__(self):
         super(Ground, self).__init__()
         self.add(Color(1,1,1))
-        self.rect = Rectangle(pos=(0,0), size=[SCREEN_WIDTH, GROUND_Y])
+        self.rect = Rectangle(pos=(0,0), size=[SCREEN_WIDTH, GROUND_Y], texture=Image("img/sand.png").texture)
         self.add(self.rect)
 
     def on_update(self, dt):
@@ -250,7 +252,9 @@ class GameDisplay(InstructionGroup):
         self.powerup_listeners = {'powerup_note':self.audio_manager.play_powerup_effect,
                                   'lower_volume': self.audio_manager.lower_volume,
                                   'raise_volume': self.audio_manager.raise_volume,
-                                  'error': self.audio_manager.play_error_effect}
+                                  'error': self.audio_manager.play_error_effect,
+                                  'bass_boost': self.audio_manager.bass_boost,
+                                  'vocals_boost': self.audio_manager.vocals_boost}
 
     # toggle paused of game or not
     def toggle(self):

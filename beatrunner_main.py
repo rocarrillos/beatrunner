@@ -21,8 +21,8 @@ class MainWidget(BaseWidget) :
         self.add_widget(self.label)
 
     def on_key_down(self, keycode, modifiers):
-        if keycode[1] == 'p':
-            pass
+        if keycode[1] == 'p':  # PAUSE
+            self.game_display.toggle()
 
         if keycode[1] == 'z':
             pass
@@ -35,7 +35,7 @@ class MainWidget(BaseWidget) :
         self.game_display.on_fall()
 
     def on_update(self) :
-        self.label.text = "Welcome to Beat Runner\n"
+        self.label.text = "Welcome to Beat Runner\nw to jump\n"
         self.anim_group.on_update()
         self.audio_manager.on_update()
         self.game_display.update_frame(self.audio_manager.get_current_frame())
