@@ -7,9 +7,9 @@ class MainWidget(BaseWidget) :
     def __init__(self):
         super(MainWidget, self).__init__()
         self.anim_group = AnimGroup()
-        self.audio_manager = AudioManager("babyshark.wav")
+        self.audio_manager = AudioManager("data/babyshark.wav")
         self.song_data = SongData()
-        self.song_data.read_data("test_data/block_data.txt", "test_data/powerup_data.txt")
+        self.song_data.read_data("data/babyshark_blocks.txt", "data/babyshark_powerups.txt")
         self.game_display = GameDisplay(self.song_data.blocks, self.song_data.powerups, self.audio_manager)
         self.anim_group.add(self.game_display)
 
@@ -22,13 +22,14 @@ class MainWidget(BaseWidget) :
 
     def on_key_down(self, keycode, modifiers):
         if keycode[1] == 'p':
-            self.game_display.on_jump()
+            pass
 
         if keycode[1] == 'z':
             pass
 
         if keycode[1] == 'w':
             self.audio_manager.play_jump_effect()
+            self.game_display.on_jump()
 
     def on_key_up(self, keycode):
         self.game_display.on_fall()
@@ -37,6 +38,7 @@ class MainWidget(BaseWidget) :
         self.label.text = "Welcome to Beat Runner\n"
         self.anim_group.on_update()
         self.audio_manager.on_update()
+        self.game_display.update_frame(self.audio_manager.get_current_frame())
 
 
 # holds data for blocks and powerups.
@@ -57,10 +59,10 @@ class SongData(object):
     # argument if your poweruppath data is stored in a different txt file.
     def read_data(self, blockpath, poweruppath):
         blocklines = self.lines_from_file(blockpath)
+
         for line in blocklines:
             blockline = line.split()
-            for i in range(2, len(blockline)):
-                self.blocks.append((float(blockline[0]), int(blockline[i])))
+            self.blocks.append((float(blockline[0]), int(blockline[2]), int(blockline[3])))
         powerups = self.lines_from_file(poweruppath)
         for p in powerups:
             powerup = p.split()
