@@ -26,6 +26,8 @@ class AudioManager(object):
         self.audio = Audio(2)
         self.mixer = Mixer()
         self.song = WaveGenerator(WaveFile(audiofile))
+        self.song.set_gain(0.75)
+        self.song = SpeedModulator(self.song)
         self.sfx = Synth("data/FluidR3_GM.sf2")
         self.volume = 100
         self.powerup_note = 69
@@ -33,12 +35,9 @@ class AudioManager(object):
         self.jump_note = 75
         self.effect_volume = 100
 
-        self.song.set_gain(0.25)
-
         # effects programming
         self.sfx.program(0, 0, 116) # taiko drum
-        self.sfx.program(1, 0, 101) # goblins
-
+        self.sfx.program(1, 0, 98) # crystal
         self.sfx.program(2, 0, 121) # breath noise
         self.sfx.program(3, 0, 97)  # soundtrack
         self.sfx.program(4, 0, 126) # applause
@@ -127,7 +126,6 @@ class SpeedModulator(object):
         self.generator = generator
         self.speed = speed
         self.continue_flag = True
-        pass
 
     def set_speed(self, speed) :
         self.speed = speed

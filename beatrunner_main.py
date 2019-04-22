@@ -7,7 +7,7 @@ class MainWidget(BaseWidget) :
     def __init__(self):
         super(MainWidget, self).__init__()
         self.anim_group = AnimGroup()
-        self.audio_manager = AudioManager("data/babyshark.wav")
+        self.audio_manager = AudioManager("babyshark.wav")
         self.song_data = SongData()
         self.song_data.read_data("test_data/block_data.txt", "test_data/powerup_data.txt")
         self.game_display = GameDisplay(self.song_data.blocks, self.song_data.powerups, self.audio_manager)
