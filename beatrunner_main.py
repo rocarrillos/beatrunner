@@ -30,6 +30,23 @@ class MainWidget(BaseWidget) :
         if keycode[1] == 'w':
             self.audio_manager.play_jump_effect()
 
+        #############################################
+        # Testing functions
+        # These are put in by Rodrigo and will be taken out once
+        # the thing is complete
+        #############################################
+        if keycode[1] == "u":
+            self.audio_manager.speedup()
+        if keycode[1] == "d":
+            self.audio_manager.slowdown()
+
+        if keycode[1] == "w":
+            self.audio_manager.play_win_effect()
+
+        if keycode[1] == "l":
+            self.audio_manager.play_lose_effect()
+
+
     def on_key_up(self, keycode):
         self.game_display.on_fall()
 

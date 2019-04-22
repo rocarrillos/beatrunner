@@ -27,7 +27,8 @@ class AudioManager(object):
         self.mixer = Mixer()
         self.song = WaveGenerator(WaveFile(audiofile))
         self.song.set_gain(0.75)
-        self.song = SpeedModulator(self.song)
+        self.speed_mod = SpeedModulator(self.song)
+        self.filter = Filter(speed_mod)
         self.sfx = Synth("data/FluidR3_GM.sf2")
         self.volume = 100
         self.powerup_note = 69
@@ -43,7 +44,7 @@ class AudioManager(object):
         self.sfx.program(4, 0, 126) # applause
 
         # hook everything up
-        self.mixer.add(self.song)
+        self.mixer.add(self.filter)
         self.mixer.add(self.sfx)
         self.audio.set_generator(self.mixer)
         self.active = True
@@ -107,13 +108,13 @@ class AudioManager(object):
         pass
 
     def speedup(self):
-        self.song.set_speed(self.song.get_speed() * 2**(1/12))
+        self.speed_mod.set_speed(self.song.get_speed() * 2**(1/12))
 
     def slowdown(self):
-        self.song.set_speed(self.song.get_speed() / 2**(1/12))
+        self.speed_mod.set_speed(self.song.get_speed() / 2**(1/12))
 
     def reset_speed(self):
-        self.song.set_speed(1)
+        self.speed_mod.set_speed(1)
 
     def on_update(self):
         if self.active:
