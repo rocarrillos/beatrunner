@@ -46,9 +46,21 @@ class MainWidget(BaseWidget) :
         if keycode[1] == "l":
             self.audio_manager.play_lose_effect()
 
+        if keycode[1] == "b":
+            self.audio_manager.bass_boost()
+
 
     def on_key_up(self, keycode):
         self.game_display.on_fall()
+
+        if keycode[1] == "w":
+            self.audio_manager.stop_win_effect()
+
+        if keycode[1] == "l":
+            self.audio_manager.stop_lose_effect()
+
+        if keycode[1] == "b":
+            self.audio_manager.reset_filter()
 
     def on_update(self) :
         self.label.text = "Welcome to Beat Runner\n"

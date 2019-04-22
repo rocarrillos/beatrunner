@@ -26,9 +26,9 @@ class AudioManager(object):
         self.audio = Audio(2)
         self.mixer = Mixer()
         self.song = WaveGenerator(WaveFile(audiofile))
-        self.song.set_gain(0.75)
+        self.song.set_gain(0.50)
         self.speed_mod = SpeedModulator(self.song)
-        self.filter = Filter(speed_mod)
+        self.filter = Filter(self.speed_mod)
         self.sfx = Synth("data/FluidR3_GM.sf2")
         self.volume = 100
         self.powerup_note = 69
@@ -40,7 +40,7 @@ class AudioManager(object):
         self.sfx.program(0, 0, 116) # taiko drum
         self.sfx.program(1, 0, 98) # crystal
         self.sfx.program(2, 0, 121) # breath noise
-        self.sfx.program(3, 0, 97)  # soundtrack
+        self.sfx.program(3, 0, 114)  # soundtrack
         self.sfx.program(4, 0, 126) # applause
 
         # hook everything up
@@ -96,22 +96,25 @@ class AudioManager(object):
 
     # MAIN TRACK EFFECTS
     def bass_boost(self):
-        pass
+        self.filter.change_pass("low")
+
+    def reset_filter(self):
+        self.filter.change_pass("reset")
 
     def vocals_boost(self):
-        pass
+        self.filter.change_pass("high")
 
     def underwater(self):
-        pass
+        self.filter.change_pass("band")
 
     def ethereal(self):
         pass
 
     def speedup(self):
-        self.speed_mod.set_speed(self.song.get_speed() * 2**(1/12))
+        self.speed_mod.set_speed(self.speed_mod.get_speed() * 2**(1/12))
 
     def slowdown(self):
-        self.speed_mod.set_speed(self.song.get_speed() / 2**(1/12))
+        self.speed_mod.set_speed(self.speed_mod.get_speed() / 2**(1/12))
 
     def reset_speed(self):
         self.speed_mod.set_speed(1)
@@ -182,24 +185,32 @@ class Filter(object):
             self.active = True
             self.filter_pass = new_pass
             if new_pass == valids[0]:
-                self.cutoff = 400.0
-            elif new_pass == valids[1]:
                 self.cutoff = 600.0
+            elif new_pass == valids[1]:
+                self.cutoff = 300.0
             else:
-                self.cutoff = 800.0
+                self.cutoff = 200.0
         elif new_pass == "reset":
             self.active = False
+        else:
+            pass
 
     def generate(self, num_frames, num_channels):
-        frames = self.generator.generate(num_frames * num_channels, num_channels)[0]
+        frames = self.generator.generate(num_frames, num_channels)[0]
         if self.active:
-            freq_ratio = self.cutoff * self.samplerate
+            frames_left = frames[0::2]
+            frames_right = frames[1::2]
+            freq_ratio = self.cutoff / self.samplerate
             n = int(math.sqrt(0.196196 + freq_ratio**2) / freq_ratio)
-            frames = running_mean(frames, n)
-        return frames, self.continue_flag
+            frames_left = running_mean(frames_left, n)
+            frames_right = running_mean(frames_right, n)
+            frames[0::2] = frames_left
+            frames[1::2] = frames_right
+        return (frames, self.continue_flag)
 
 
 
 def running_mean(x, windowsize):
-    cumesum = np.cumsum(np.insert(x, 0, 0))
-    return (cumesum[windowsize:] - cumesum[:-windowsize]) / windowsize
+    cumesum = np.cumsum(np.insert([float(i) for i in x], 0, 0))
+    ret = np.concatenate((cumesum[:windowsize - 1] / (windowsize), (cumesum[windowsize:] - cumesum[:-windowsize]) / (windowsize)), axis=None)
+    return ret
