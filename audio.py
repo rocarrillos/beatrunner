@@ -35,7 +35,7 @@ class AudioManager(object):
         self.secondary_filter = None
         self.sfx = Synth("data/FluidR3_GM.sf2")
         self.volume = 100
-        self.primary_song.set_gain(0.25)
+        self.primary_song.set_gain(0.5)
         self.mixer.set_gain(1)
         self.powerup_note = 69
         self.error_note = 60
@@ -118,12 +118,15 @@ class AudioManager(object):
     def underwater(self):
         self.primary_filter.change_pass("band")
 
+    def riser(self):
+        self.mixer.add(WaveGenerator(WaveFile("data/riser1.wav")))
+
     def ethereal(self):
         pass
 
     def speedup(self):
         self.primary_speed_mod.set_speed(self.primary_speed_mod.get_speed() * 2**(1/12))
-        if self.sampler: self.sampler.set_speed(self.speed_mod.get_speed() * 2**(1/12))
+        if self.sampler: self.sampler.set_speed(self.primary_speed_mod.get_speed() * 2**(1/12))
 
     def slowdown(self):
         self.primary_speed_mod.set_speed(self.primary_speed_mod.get_speed() / 2**(1/12))
@@ -158,11 +161,12 @@ class AudioManager(object):
         self.secondary_audiofile = ""
         self.secondary_speed_mod = None
         self.secondary_filter = None
+        self.reset_sample()
 
     def reset_sample(self):
         self.mixer.remove(self.sampler)
         self.sampler = None
-        self.primary_song.set_gain(0.25)
+        self.primary_song.set_gain(0.5)
 
     def reset_speed(self):
         self.primary_speed_mod.set_speed(1)

@@ -43,7 +43,8 @@ TEXTURES = {'vocals_boost': Image("img/mic.jpg").texture, 'bass_boost': Image("i
             "reset_speed": Image("img/reset_speed.png").texture,"speedup":Image("img/speedup.png").texture,
             "slowdown": Image("img/ice.jpg").texture,"underwater":Image("img/sub.jpg").texture,
             "sample_on": Image("img/sample_on.png").texture, "sample_off": Image("img/sample_off.png").texture,
-            "reset_sample":Image("img/sample_off.png").texture}
+            "reset_sample":Image("img/sample_off.png").texture, "start_transition": Image("img/green_spiral.png").texture,
+            "end_transition": Image("img/red_spiral.png").texture, "riser":Image("img/riser.png").texture}
 
 gravity = np.array((0, -1800))
 
@@ -279,7 +280,10 @@ class GameDisplay(InstructionGroup):
                                   'reset_speed': [self.audio_manager.reset_speed, self.reset_game_speed],
                                   'sample_on':[self.audio_manager.sample_on],
                                   'sample_off':[self.audio_manager.sample_off],
-                                  'reset_sample':[self.audio_manager.reset_sample]}
+                                  'reset_sample':[self.audio_manager.reset_sample],
+                                  'start_transition':[self.audio_manager.start_transition_song],
+                                  'end_transition':[self.audio_manager.end_transition_song],
+                                  'riser':[self.audio_manager.riser]}
 
         self.game_speed = INIT_RIGHT_SPEED
 
@@ -379,6 +383,8 @@ class GameDisplay(InstructionGroup):
                 if powerup.get_pos()[1] < player.get_pos()[1] < powerup.get_pos()[1] + POWERUP_LENGTH or powerup.get_pos()[1] < player.get_pos()[1] + PLAYER_HEIGHT < powerup.get_pos()[1] + POWERUP_LENGTH:
                     if powerup.powerup_type == "sample_on" or powerup.powerup_type == "sample_off":
                         powerup.activate([[self.current_frame]])
+                    elif powerup.powerup_type == "start_transition":
+                        powerup.activate([["data/stealmygirl.wav"]])
                     else:
                         powerup.activate()
                     return powerup
