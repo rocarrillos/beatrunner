@@ -25,7 +25,7 @@ SCREEN_WIDTH = Window.size[0]
 SCREEN_HEIGHT = Window.size[1]
 PLAYER_X = int(SCREEN_WIDTH / 6)
 SECONDS_FROM_RIGHT_TO_PLAYER = 4
-RIGHT_SPEED = (SCREEN_WIDTH - PLAYER_X)/SECONDS_FROM_RIGHT_TO_PLAYER  # pixels/second
+INIT_RIGHT_SPEED = (SCREEN_WIDTH - PLAYER_X)/SECONDS_FROM_RIGHT_TO_PLAYER  # pixels/second
 FALL_SPEED = ()
 GROUND_Y = int(SCREEN_HEIGHT / 10)
 
@@ -39,7 +39,9 @@ POWERUP_LENGTH = int(SCREEN_WIDTH/20)
 
 TEXTURES = {'vocals_boost': Image("img/mic.jpg").texture, 'bass_boost': Image("img/bass.jpg").texture,
             'powerup_note':Image("img/riser.png").texture,"lower_volume":Image("img/arrowdownred.png").texture,
-            "raise_volume": Image("img/uparrowred.png").texture}
+            "raise_volume": Image("img/uparrowred.png").texture, "reset_filter":Image("img/reset_filter.png").texture,
+            "reset_speed": Image("img/reset_speed.png").texture,"speedup":Image("img/speedup.png").texture,
+            "slowdown": Image("img/ice.jpg").texture,"underwater":Image("img/sub.jpg").texture}
 
 gravity = np.array((0, -1800))
 
@@ -132,7 +134,7 @@ class Player(InstructionGroup):
 #   units: number of square blocks in a row to create the whole block.
 ##
 class Block(InstructionGroup):
-    def __init__(self, pos, color, units):
+    def __init__(self, pos, color, units, speed):
         super(Block, self).__init__()
         self.pos = pos
         self.color = color
@@ -145,10 +147,11 @@ class Block(InstructionGroup):
             self.blocks.append(block)
             self.add(block)
         self.size = [BLOCK_UNIT_LENGTH * units, BLOCK_HEIGHT]
+        self.speed = speed
 
     def on_update(self, dt):
         for block in self.blocks:
-            block.pos -= np.array([dt* RIGHT_SPEED, 0])
+            block.pos -= np.array([dt* self.speed, 0])
         return not self.fell_offscreen()
 
     def fell_offscreen(self):
@@ -159,6 +162,9 @@ class Block(InstructionGroup):
 
     def get_size(self):
         return self.size
+
+    def change_speed(self, new_speed):
+        self.speed = new_speed
 
 
 ##
@@ -187,17 +193,18 @@ class Ground(InstructionGroup):
 # args: activation_listener - passed in function that is activated when powerup is run into
 # waits to see powerup is activated (and whether it should be taken off canvas)
 class Powerup(InstructionGroup):
-    def __init__(self, pos, powerup_type, activation_listener=None):
+    def __init__(self, pos, powerup_type, speed, activation_listeners=None):
         super(Powerup, self).__init__()
         self.pos = pos
         self.texture = TEXTURES[powerup_type]
         self.powerup = Rectangle(pos=self.pos, size=[POWERUP_LENGTH, POWERUP_LENGTH],texture=self.texture)
         self.add(self.powerup)
         self.triggered = False
-        self.activation_listener = activation_listener
+        self.activation_listeners = activation_listeners
+        self.speed = speed
 
     def on_update(self, dt):
-        self.powerup.pos -= np.array([dt * RIGHT_SPEED, 0])
+        self.powerup.pos -= np.array([dt * self.speed, 0])
         return not self.fell_offscreen()
 
     def fell_offscreen(self):
@@ -210,8 +217,12 @@ class Powerup(InstructionGroup):
         return self.powerup.size
 
     def activate(self):
-        self.activation_listener()
+        for listener in self.activation_listeners:
+            listener()
         self.triggered = True
+
+    def change_speed(self, new_speed):
+        self.speed = new_speed
 
 
 ##
@@ -249,12 +260,19 @@ class GameDisplay(InstructionGroup):
 
         self.index_to_y = [int(SCREEN_HEIGHT/5), int(SCREEN_HEIGHT * 2/5), int(SCREEN_HEIGHT*3/5)]
 
-        self.powerup_listeners = {'powerup_note':self.audio_manager.play_powerup_effect,
-                                  'lower_volume': self.audio_manager.lower_volume,
-                                  'raise_volume': self.audio_manager.raise_volume,
-                                  'error': self.audio_manager.play_error_effect,
-                                  'bass_boost': self.audio_manager.bass_boost,
-                                  'vocals_boost': self.audio_manager.vocals_boost}
+        self.powerup_listeners = {'powerup_note': [self.audio_manager.play_powerup_effect],
+                                  'lower_volume': [self.audio_manager.lower_volume],
+                                  'raise_volume': [self.audio_manager.raise_volume],
+                                  'error': [self.audio_manager.play_error_effect],
+                                  'bass_boost': [self.audio_manager.bass_boost],
+                                  'vocals_boost': [self.audio_manager.vocals_boost],
+                                  'reset_filter': [self.audio_manager.reset_filter],
+                                  'underwater': [self.audio_manager.underwater],
+                                  'speedup': [self.audio_manager.speedup, self.increase_game_speed],
+                                  'slowdown': [self.audio_manager.slowdown, self.decrease_game_speed],
+                                  'reset_speed': [self.audio_manager.reset_speed, self.reset_game_speed]}
+
+        self.game_speed = INIT_RIGHT_SPEED
 
     # toggle paused of game or not
     def toggle(self):
@@ -297,7 +315,7 @@ class GameDisplay(InstructionGroup):
                             self.song_data[self.current_block][0] - SECONDS_FROM_RIGHT_TO_PLAYER:
                 y_pos = self.song_data[self.current_block][1]
                 units = self.song_data[self.current_block][2]
-                new_block = Block((SCREEN_WIDTH, self.index_to_y[y_pos-1]), Color(1,1,1), units)
+                new_block = Block((SCREEN_WIDTH, self.index_to_y[y_pos-1]), Color(1,1,1), units, self.game_speed)
                 self.blocks.add(new_block)
                 self.add(new_block)
                 self.current_block += 1
@@ -306,7 +324,7 @@ class GameDisplay(InstructionGroup):
                 self.current_powerup][0] - SECONDS_FROM_RIGHT_TO_PLAYER:
                 y_pos = self.powerup_data[self.current_powerup][1]
                 p_type = self.powerup_data[self.current_powerup][2]
-                new_powerup = Powerup((SCREEN_WIDTH, self.index_to_y[y_pos-1]), p_type, self.powerup_listeners[p_type])
+                new_powerup = Powerup((SCREEN_WIDTH, self.index_to_y[y_pos-1]), p_type, self.game_speed, self.powerup_listeners[p_type])
                 self.powerups.add(new_powerup)
                 self.add(new_powerup)
                 self.current_powerup += 1
@@ -353,3 +371,25 @@ class GameDisplay(InstructionGroup):
                     powerup.activate()
                     return powerup
         return None
+
+    def increase_game_speed(self):
+        self.game_speed = self.game_speed * 2**(1/12)
+        for block in self.blocks:
+            block.change_speed(self.game_speed)
+        for powerup in self.powerups:
+            powerup.change_speed(self.game_speed)
+
+    def decrease_game_speed(self):
+        self.game_speed = self.game_speed / 2**(1/12)
+        for block in self.blocks:
+            block.change_speed(self.game_speed)
+        for powerup in self.powerups:
+            powerup.change_speed(self.game_speed)
+
+    def reset_game_speed(self):
+        self.game_speed = INIT_RIGHT_SPEED
+        for block in self.blocks:
+            block.change_speed(self.game_speed)
+        for powerup in self.powerups:
+            powerup.change_speed(self.game_speed)
+
