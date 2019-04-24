@@ -41,7 +41,9 @@ TEXTURES = {'vocals_boost': Image("img/mic.jpg").texture, 'bass_boost': Image("i
             'powerup_note':Image("img/riser.png").texture,"lower_volume":Image("img/arrowdownred.png").texture,
             "raise_volume": Image("img/uparrowred.png").texture, "reset_filter":Image("img/reset_filter.png").texture,
             "reset_speed": Image("img/reset_speed.png").texture,"speedup":Image("img/speedup.png").texture,
-            "slowdown": Image("img/ice.jpg").texture,"underwater":Image("img/sub.jpg").texture}
+            "slowdown": Image("img/ice.jpg").texture,"underwater":Image("img/sub.jpg").texture,
+            "sample_on": Image("img/sample_on.png").texture, "sample_off": Image("img/sample_off.png").texture,
+            "reset_sample":Image("img/sample_off.png").texture}
 
 gravity = np.array((0, -1800))
 
@@ -56,7 +58,7 @@ gravity = np.array((0, -1800))
 class Player(InstructionGroup):
     def __init__(self, listen_collision_above_blocks=None, listen_collision_ground=None, listen_collision_powerup=None, listen_collision_below_blocks=None):
         super(Player, self).__init__()
-        self.pos = (PLAYER_X, GROUND_Y)
+        self.pos = (PLAYER_X-PLAYER_WIDTH, GROUND_Y)
         self.texture = Image('img/shark_figure.jpg').texture
         self.add(Color(1,1,1))
         self.rect = Rectangle(pos=self.pos, size=(PLAYER_WIDTH, PLAYER_HEIGHT), texture=self.texture)
@@ -196,6 +198,7 @@ class Powerup(InstructionGroup):
     def __init__(self, pos, powerup_type, speed, activation_listeners=None):
         super(Powerup, self).__init__()
         self.pos = pos
+        self.powerup_type = powerup_type
         self.texture = TEXTURES[powerup_type]
         self.powerup = Rectangle(pos=self.pos, size=[POWERUP_LENGTH, POWERUP_LENGTH],texture=self.texture)
         self.add(self.powerup)
@@ -216,9 +219,12 @@ class Powerup(InstructionGroup):
     def get_size(self):
         return self.powerup.size
 
-    def activate(self):
-        for listener in self.activation_listeners:
-            listener()
+    def activate(self, args=None):
+        for i,listener in enumerate(self.activation_listeners):
+            if args is None:
+                listener()
+            else:
+                listener(*args[i])
         self.triggered = True
 
     def change_speed(self, new_speed):
@@ -270,7 +276,10 @@ class GameDisplay(InstructionGroup):
                                   'underwater': [self.audio_manager.underwater],
                                   'speedup': [self.audio_manager.speedup, self.increase_game_speed],
                                   'slowdown': [self.audio_manager.slowdown, self.decrease_game_speed],
-                                  'reset_speed': [self.audio_manager.reset_speed, self.reset_game_speed]}
+                                  'reset_speed': [self.audio_manager.reset_speed, self.reset_game_speed],
+                                  'sample_on':[self.audio_manager.sample_on],
+                                  'sample_off':[self.audio_manager.sample_off],
+                                  'reset_sample':[self.audio_manager.reset_sample]}
 
         self.game_speed = INIT_RIGHT_SPEED
 
@@ -368,7 +377,10 @@ class GameDisplay(InstructionGroup):
         for powerup in self.powerups:
             if powerup.get_pos()[0] < player.get_pos()[0] < powerup.get_pos()[0] + POWERUP_LENGTH or powerup.get_pos()[0] < player.get_pos()[0] + PLAYER_WIDTH < powerup.get_pos()[0] + POWERUP_LENGTH:
                 if powerup.get_pos()[1] < player.get_pos()[1] < powerup.get_pos()[1] + POWERUP_LENGTH or powerup.get_pos()[1] < player.get_pos()[1] + PLAYER_HEIGHT < powerup.get_pos()[1] + POWERUP_LENGTH:
-                    powerup.activate()
+                    if powerup.powerup_type == "sample_on" or powerup.powerup_type == "sample_off":
+                        powerup.activate([[self.current_frame]])
+                    else:
+                        powerup.activate()
                     return powerup
         return None
 

@@ -25,13 +25,17 @@ class AudioManager(object):
         super(AudioManager, self).__init__()
         self.audio = Audio(2)
         self.mixer = Mixer()
-        self.song = WaveGenerator(WaveFile(audiofile))
-        self.song.set_gain(0.50)
-        self.speed_mod = SpeedModulator(self.song)
-        self.filter = Filter(self.speed_mod)
+        self.primary_audiofile = audiofile
+        self.primary_song = WaveGenerator(WaveFile(self.primary_audiofile))
+        self.secondary_audiofile = ""
+        self.secondary_song = None
+        self.primary_speed_mod = SpeedModulator(self.primary_song)
+        self.secondary_speed_mod = None
+        self.primary_filter = Filter(self.primary_speed_mod)
+        self.secondary_filter = None
         self.sfx = Synth("data/FluidR3_GM.sf2")
         self.volume = 100
-        self.song.set_gain(0.25)
+        self.primary_song.set_gain(0.25)
         self.mixer.set_gain(1)
         self.powerup_note = 69
         self.error_note = 60
@@ -46,10 +50,15 @@ class AudioManager(object):
         self.sfx.program(4, 0, 126) # applause
 
         # hook everything up
-        self.mixer.add(self.filter)
+        self.mixer.add(self.primary_filter)
         self.mixer.add(self.sfx)
         self.audio.set_generator(self.mixer)
         self.active = True
+
+        # sample states
+        self.sample_on_frame = 0
+        self.sample_off_frame = 0
+        self.sampler = None
         
     def toggle(self):
         self.active = not self.active
@@ -98,31 +107,68 @@ class AudioManager(object):
 
     # MAIN TRACK EFFECTS
     def bass_boost(self):
-        self.filter.change_pass("low")
+        self.primary_filter.change_pass("low")
 
     def reset_filter(self):
-        self.filter.change_pass("reset")
+        self.primary_filter.change_pass("reset")
 
     def vocals_boost(self):
-        self.filter.change_pass("high")
+        self.primary_filter.change_pass("high")
 
     def underwater(self):
-        self.filter.change_pass("band")
+        self.primary_filter.change_pass("band")
 
     def ethereal(self):
         pass
 
     def speedup(self):
-        self.speed_mod.set_speed(self.speed_mod.get_speed() * 2**(1/12))
+        self.primary_speed_mod.set_speed(self.primary_speed_mod.get_speed() * 2**(1/12))
+        if self.sampler: self.sampler.set_speed(self.speed_mod.get_speed() * 2**(1/12))
 
     def slowdown(self):
-        self.speed_mod.set_speed(self.speed_mod.get_speed() / 2**(1/12))
+        self.primary_speed_mod.set_speed(self.primary_speed_mod.get_speed() / 2**(1/12))
+        if self.sampler: self.sampler.set_speed(self.primary_speed_mod.get_speed() / 2 ** (1 / 12))
+
+    # SAMPLE EFFECTS
+    def sample_on(self, frame):
+        self.sample_on_frame = frame
+
+    def sample_off(self, frame):
+        self.sample_off_frame = frame
+        sample = WaveGenerator(WaveBuffer(self.primary_audiofile, self.sample_on_frame,frame - self.sample_on_frame), loop=True)
+        self.sampler = SpeedModulator(sample)
+        self.mixer.add(self.sampler)
+        sample.set_gain(self.primary_song.get_gain())
+        self.primary_song.set_gain(0)
+
+    def start_transition_song(self, audio_file):
+        self.secondary_song = WaveGenerator(WaveFile(audio_file))
+        self.secondary_audiofile = audio_file
+        self.secondary_speed_mod = SpeedModulator(self.secondary_song)
+        self.secondary_filter = Filter(self.secondary_speed_mod)
+        self.mixer.add(self.secondary_filter)
+
+    def end_transition_song(self):
+        self.mixer.remove(self.primary_filter)
+        self.primary_song = self.secondary_song
+        self.primary_audiofile = self.secondary_audiofile
+        self.primary_speed_mod = self.secondary_speed_mod
+        self.primary_filter = self.secondary_filter
+        self.secondary_song = None
+        self.secondary_audiofile = ""
+        self.secondary_speed_mod = None
+        self.secondary_filter = None
+
+    def reset_sample(self):
+        self.mixer.remove(self.sampler)
+        self.sampler = None
+        self.primary_song.set_gain(0.25)
 
     def reset_speed(self):
-        self.speed_mod.set_speed(1)
+        self.primary_speed_mod.set_speed(1)
 
     def get_current_frame(self):
-        return self.song.frame
+        return self.primary_song.frame
 
     def on_update(self):
         if self.active:
