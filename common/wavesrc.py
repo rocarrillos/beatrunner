@@ -59,7 +59,9 @@ class WaveBuffer(object):
 
         # get a local copy of the audio data from WaveFile
         wr = WaveFile(filepath)
-        self.data = wr.get_frames(start_frame, start_frame + num_frames)
+        self.full_data = wr.get_frames(start_frame, start_frame + num_frames)
+        self.data = self.full_data
+        self.start = start_frame
         self.num_channels = wr.get_num_channels()
 
     # start and end args are in units of frames,
@@ -68,6 +70,15 @@ class WaveBuffer(object):
         start_sample = start_frame * self.num_channels
         end_sample = end_frame * self.num_channels
         return self.data[start_sample : end_sample]
+
+    # Change the number of frames played from the wave file to the number of frames requested by num * len(full_data).
+    # Assert num <= 1. then cut the sample [0:num * len(full_data)]
+    def change_frames(self, start_frame, end_frame):
+        assert end_frame - start_frame > 0
+        self.data = self.full_data[start_frame:end_frame]
+
+    def reset_frames(self):
+        self.data = self.full_data
 
     def get_num_channels(self):
         return self.num_channels
