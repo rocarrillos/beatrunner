@@ -1,9 +1,9 @@
-AUDIO_FILES = ["data/babyshark.wav", "data/stealmygirl.wav"]
-SONG_DATA_FILES = [("data/babyshark_blocks.txt", "data/babyshark_powerups.txt"),("data/stealmygirl_blocks.txt", "data/stealmygirl_powerups.txt")]
+AUDIO_FILES = ["data/babyshark.wav", "data/closerremix.wav"]
+SONG_DATA_FILES = [("data/babyshark_blocks.txt", "data/babyshark_powerups.txt"),("data/closer_blocks.txt", "data/closer_powerups.txt")]
 
 PLAYER_IMAGES = ["img/shark_figure.jpg","img/stick_figure.jpg"]
 BLOCK_IMAGES = ["img/wav.png", "img/brick.jpg"]
-GROUND_IMAGES = ["img/sand.png", "img/grass.png"]
+GROUND_IMAGES = ["img/sand.png", "img/grass.jpg"]
 
 
 class GameData(object):

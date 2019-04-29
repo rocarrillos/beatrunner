@@ -1,5 +1,6 @@
 from audio import *
 from gamevisuals import *
+from transition import *
 
 
 # MAINWIDGET FOR TESTING GAME VISUALS INDEPENDENTLY OF THE ENTIRE GAME
@@ -7,11 +8,11 @@ class MainWidget(BaseWidget) :
     def __init__(self):
         super(MainWidget, self).__init__()
         self.anim_group = AnimGroup()
-        self.songs = ["data/babyshark.wav", "data/stealmygirl.wav"]
-        self.song_index = 0
-        self.audio_manager = AudioManager(self.songs[self.song_index])
+        self.game_data = GameData()
+        self.audio_manager = AudioManager(self.game_data.audio_file_name)
+
         self.song_data = SongData()
-        self.song_data.read_data("data/babyshark_blocks.txt", "data/babyshark_powerups.txt")
+        self.song_data.read_data(*self.game_data.song_data_files)
         self.game_display = GameDisplay(self.song_data.blocks, self.song_data.powerups, self.audio_manager)
         self.anim_group.add(self.game_display)
 
@@ -28,6 +29,10 @@ class MainWidget(BaseWidget) :
 
         if keycode[1] == 'z':
             pass
+
+        if keycode[1] == 't':
+            self.game_data.transition()
+            self.audio_manager.start_transition_song(self.game_data.audio_file_name)
 
         if keycode[1] == 'w':
             self.audio_manager.play_jump_effect()
@@ -52,7 +57,6 @@ class MainWidget(BaseWidget) :
         if keycode[1] == "b":
             self.audio_manager.bass_boost()
 
-
     def on_key_up(self, keycode):
         self.game_display.on_fall()
 
@@ -65,8 +69,15 @@ class MainWidget(BaseWidget) :
         if keycode[1] == "b":
             self.audio_manager.reset_filter()
 
+        if keycode[1] == 't':
+            self.song_data.read_data(*self.game_data.song_data_files)  ## transition
+            self.game_display.transition(self.game_data.player_image, self.game_data.ground_image,
+                                         self.game_data.block_image)
+            self.audio_manager.end_transition_song()
+
     def on_update(self) :
-        self.label.text = "Welcome to Beat Runner\nw to jump\n"
+        self.label.text = "Welcome to Beat Runner\nw to jump\nhold down t to transition\nLevel "+str(self.game_data.level + 1) + "\n"
+        self.label.text += "Score: " + str(self.audio_manager.score) + "\n"
         self.anim_group.on_update()
         self.audio_manager.on_update()
         self.game_display.update_frame(self.audio_manager.get_current_frame())
