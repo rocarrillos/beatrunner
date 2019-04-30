@@ -26,13 +26,12 @@ SCREEN_HEIGHT = Window.size[1]
 PLAYER_X = int(SCREEN_WIDTH / 6)
 SECONDS_FROM_RIGHT_TO_PLAYER = 4
 INIT_RIGHT_SPEED = (SCREEN_WIDTH - PLAYER_X)/SECONDS_FROM_RIGHT_TO_PLAYER  # pixels/second
-FALL_SPEED = ()
 GROUND_Y = int(SCREEN_HEIGHT / 10)
 
-BLOCK_HEIGHT = int(SCREEN_HEIGHT / 20)
+BLOCK_HEIGHT = int(SCREEN_HEIGHT / 15)
 BLOCK_UNIT_LENGTH = int(SCREEN_WIDTH/4)
 
-PLAYER_HEIGHT = int(3 * SCREEN_HEIGHT / 20)
+PLAYER_HEIGHT = int(2 * SCREEN_HEIGHT / 20)
 PLAYER_WIDTH = int(SCREEN_HEIGHT / 15)
 
 POWERUP_LENGTH = int(SCREEN_WIDTH/20)
@@ -87,8 +86,9 @@ class Player(InstructionGroup):
             current_y = self.rect.pos[1]
             max_y = self.rect.pos[1] + int(7 * SCREEN_HEIGHT / 20)
             slow_down_y_1 = self.rect.pos[1] + int(SCREEN_HEIGHT / 5)
-            slow_down_y_2 = self.rect.pos[1] + int(3 * SCREEN_HEIGHT / 10)
-            self.jump_anim = KFAnim((0,current_y), (0.2, slow_down_y_1), (0.3, slow_down_y_2), (0.5, max_y))
+            slow_down_y_2 = self.rect.pos[1] + int(5 * SCREEN_HEIGHT / 20)
+            slow_down_y_3 = self.rect.pos[1] + int(6.5 * SCREEN_HEIGHT/20)
+            self.jump_anim = KFAnim((0,current_y), (0.25, slow_down_y_1), (0.35, slow_down_y_2), (0.5, slow_down_y_3), (0.6, max_y))
             self.fall_on = False
 
     def on_fall(self):
@@ -105,7 +105,7 @@ class Player(InstructionGroup):
             self.jump_anim = None
             self.dt = 0
         # print("position", self.rect.pos, self.fall_vel * dt)
-        if self.jump_anim and self.dt > 0.5:
+        if self.jump_anim and self.dt > 0.6:
             self.reset_on_fall()
 
         if self.listen_collision_below_blocks and self.listen_collision_ground:
@@ -337,7 +337,7 @@ class GameDisplay(InstructionGroup):
                             self.song_data[self.current_block][0] - SECONDS_FROM_RIGHT_TO_PLAYER:
                 y_pos = self.song_data[self.current_block][1]
                 units = self.song_data[self.current_block][2]
-                new_block = Block((SCREEN_WIDTH, self.index_to_y[y_pos-1]), Color(1,1,1), units, self.game_speed, self.block_texture)
+                new_block = Block((SCREEN_WIDTH, self.index_to_y[y_pos-1] + GROUND_Y), Color(1,1,1), units, self.game_speed, self.block_texture)
                 self.blocks.add(new_block)
                 self.add(new_block)
                 self.current_block += 1
@@ -346,7 +346,7 @@ class GameDisplay(InstructionGroup):
                 self.current_powerup][0] - SECONDS_FROM_RIGHT_TO_PLAYER:
                 y_pos = self.powerup_data[self.current_powerup][1]
                 p_type = self.powerup_data[self.current_powerup][2]
-                new_powerup = Powerup((SCREEN_WIDTH, self.index_to_y[y_pos-1]), p_type, self.game_speed, self.powerup_listeners[p_type])
+                new_powerup = Powerup((SCREEN_WIDTH, self.index_to_y[y_pos-1] + GROUND_Y + BLOCK_HEIGHT), p_type, self.game_speed, self.powerup_listeners[p_type])
                 self.powerups.add(new_powerup)
                 self.add(new_powerup)
                 self.current_powerup += 1
@@ -388,8 +388,10 @@ class GameDisplay(InstructionGroup):
     # listener for player with powerups objects
     def listen_collision_powerup(self, player):
         for powerup in self.powerups:
-            if powerup.get_pos()[0] < player.get_pos()[0] < powerup.get_pos()[0] + POWERUP_LENGTH or powerup.get_pos()[0] < player.get_pos()[0] + PLAYER_WIDTH < powerup.get_pos()[0] + POWERUP_LENGTH:
-                if powerup.get_pos()[1] < player.get_pos()[1] < powerup.get_pos()[1] + POWERUP_LENGTH or powerup.get_pos()[1] < player.get_pos()[1] + PLAYER_HEIGHT < powerup.get_pos()[1] + POWERUP_LENGTH:
+            if powerup.get_pos()[0] < player.get_pos()[0] < powerup.get_pos()[0] + POWERUP_LENGTH or \
+                                    powerup.get_pos()[0] < player.get_pos()[0] + PLAYER_WIDTH < powerup.get_pos()[0] + POWERUP_LENGTH:
+                if player.get_pos()[1] < powerup.get_pos()[1] < player.get_pos()[1] + PLAYER_HEIGHT or \
+                                        player.get_pos()[1] < powerup.get_pos()[1] + POWERUP_LENGTH < player.get_pos()[1] + PLAYER_HEIGHT:
                     if powerup.powerup_type == "sample_on" or powerup.powerup_type == "sample_off":
                         powerup.activate([[self.current_frame]])
                     else:

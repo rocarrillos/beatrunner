@@ -25,6 +25,9 @@ class AudioManager(object):
         super(AudioManager, self).__init__()
         self.audio = Audio(2)
         self.mixer = Mixer()
+        self.sfx = Synth("data/FluidR3_GM.sf2")
+
+        # setup audio files
         self.primary_audiofile = audiofile
         self.primary_song = WaveGenerator(WaveFile(self.primary_audiofile))
         self.secondary_audiofile = ""
@@ -33,10 +36,12 @@ class AudioManager(object):
         self.secondary_speed_mod = None
         self.primary_filter = Filter(self.primary_speed_mod)
         self.secondary_filter = None
-        self.sfx = Synth("data/FluidR3_GM.sf2")
+
         self.volume = 100
         self.primary_song.set_gain(0.5)
         self.mixer.set_gain(1)
+
+        # effects notes
         self.powerup_note = 69
         self.error_note = 60
         self.jump_note = 75
