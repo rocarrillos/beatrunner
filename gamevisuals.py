@@ -197,6 +197,25 @@ class Ground(InstructionGroup):
     def set_texture(self, new_texture):
         self.rect.texture = Image(new_texture).texture
 
+class Background(InstructionGroup):
+    def __init__(self):
+        super(Background, self).__init__()
+        self.add(Color(1, 1, 1))
+        self.counter = 0
+        self.bgs = ["img/ocean.jpg", "img/field.jpg", "img/clouds.jpg"]
+        self.bg = Rectangle(pos=(0, 0), size=[SCREEN_WIDTH, SCREEN_HEIGHT], texture=Image("img/ocean.jpg").texture)
+        self.add(self.bg)
+
+    def on_update(self, dt):
+        return True
+
+    def get_pos(self):
+        return self.bg.pos
+
+    def change(self):
+        self.counter = self.counter + 1 if self.counter < len(self.bgs) else self.counter
+        self.bg.texture = Image(self.bgs[self.counter]).texture
+
 
 ##
 # POWERUP CLASS
@@ -257,6 +276,8 @@ class GameDisplay(InstructionGroup):
         self.color = Color(1,1,1)
         self.add(self.color)
 
+        self.background = Background()
+        self.add(self.background)
         self.player = Player(listen_collision_above_blocks=self.listen_collision_above_block,
                         listen_collision_ground=self.listen_collision_ground,
                              listen_collision_powerup=self.listen_collision_powerup,
@@ -264,7 +285,7 @@ class GameDisplay(InstructionGroup):
 
         self.add(self.player)
         self.ground = Ground()
-        self.add(self.ground)
+        self.add(self.ground)        
 
         self.current_frame = 0
         self.current_block = 0  # current block ind to add from song_data
@@ -421,4 +442,5 @@ class GameDisplay(InstructionGroup):
     def transition(self, player_texture, ground_texture, block_texture):
         self.player.set_texture(player_texture)
         self.ground.set_texture(ground_texture)  # this step is generating a lot of latency TODO(clhsu)
+        self.background.change()
         self.block_texture = block_texture
