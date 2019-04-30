@@ -128,6 +128,9 @@ class Player(InstructionGroup):
         self.jump_anim = None
         self.fall_on = True
 
+    def set_texture(self, new_texture):
+        self.rect.texture = Image(new_texture).texture
+
 
 ##
 # BLOCK CLASS -
@@ -137,7 +140,7 @@ class Player(InstructionGroup):
 #   units: number of square blocks in a row to create the whole block.
 ##
 class Block(InstructionGroup):
-    def __init__(self, pos, color, units, speed):
+    def __init__(self, pos, color, units, speed, texture):
         super(Block, self).__init__()
         self.pos = pos
         self.color = color
@@ -146,7 +149,7 @@ class Block(InstructionGroup):
         for i in range(units):
             block = Rectangle(pos=self.pos + np.array([BLOCK_UNIT_LENGTH * i, 0]),
                                          size=[BLOCK_UNIT_LENGTH, BLOCK_HEIGHT],
-                                         texture=Image("img/wave.png").texture)
+                                         texture=Image(texture).texture)
             self.blocks.append(block)
             self.add(block)
         self.size = [BLOCK_UNIT_LENGTH * units, BLOCK_HEIGHT]
@@ -169,6 +172,10 @@ class Block(InstructionGroup):
     def change_speed(self, new_speed):
         self.speed = new_speed
 
+    def set_texture(self, new_texture):
+        for b in self.blocks:
+            b.texture = Image(new_texture).image
+
 
 ##
 # GROUND CLASS
@@ -186,6 +193,9 @@ class Ground(InstructionGroup):
 
     def get_pos(self):
         return self.rect.pos
+
+    def set_texture(self, new_texture):
+        self.rect.texture = Image(new_texture).texture
 
 
 ##
@@ -281,11 +291,10 @@ class GameDisplay(InstructionGroup):
                                   'sample_on':[self.audio_manager.sample_on],
                                   'sample_off':[self.audio_manager.sample_off],
                                   'reset_sample':[self.audio_manager.reset_sample],
-                                  'start_transition':[self.audio_manager.start_transition_song],
-                                  'end_transition':[self.audio_manager.end_transition_song],
                                   'riser':[self.audio_manager.riser]}
 
         self.game_speed = INIT_RIGHT_SPEED
+        self.block_texture = "img/wave.png"
 
     # toggle paused of game or not
     def toggle(self):
@@ -328,7 +337,7 @@ class GameDisplay(InstructionGroup):
                             self.song_data[self.current_block][0] - SECONDS_FROM_RIGHT_TO_PLAYER:
                 y_pos = self.song_data[self.current_block][1]
                 units = self.song_data[self.current_block][2]
-                new_block = Block((SCREEN_WIDTH, self.index_to_y[y_pos-1]), Color(1,1,1), units, self.game_speed)
+                new_block = Block((SCREEN_WIDTH, self.index_to_y[y_pos-1]), Color(1,1,1), units, self.game_speed, self.block_texture)
                 self.blocks.add(new_block)
                 self.add(new_block)
                 self.current_block += 1
@@ -383,8 +392,6 @@ class GameDisplay(InstructionGroup):
                 if powerup.get_pos()[1] < player.get_pos()[1] < powerup.get_pos()[1] + POWERUP_LENGTH or powerup.get_pos()[1] < player.get_pos()[1] + PLAYER_HEIGHT < powerup.get_pos()[1] + POWERUP_LENGTH:
                     if powerup.powerup_type == "sample_on" or powerup.powerup_type == "sample_off":
                         powerup.activate([[self.current_frame]])
-                    elif powerup.powerup_type == "start_transition":
-                        powerup.activate([["data/stealmygirl.wav"]])
                     else:
                         powerup.activate()
                     return powerup
@@ -411,3 +418,7 @@ class GameDisplay(InstructionGroup):
         for powerup in self.powerups:
             powerup.change_speed(self.game_speed)
 
+    def transition(self, player_texture, ground_texture, block_texture):
+        self.player.set_texture(player_texture)
+        self.ground.set_texture(ground_texture)  # this step is generating a lot of latency TODO(clhsu)
+        self.block_texture = block_texture
