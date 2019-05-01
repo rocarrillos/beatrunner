@@ -32,7 +32,7 @@ BLOCK_HEIGHT = int(SCREEN_HEIGHT / 15)
 BLOCK_UNIT_LENGTH = int(SCREEN_WIDTH/4)
 
 PLAYER_HEIGHT = int(2 * SCREEN_HEIGHT / 20)
-PLAYER_WIDTH = int(SCREEN_HEIGHT / 15)
+PLAYER_WIDTH = int(SCREEN_HEIGHT / 10)
 
 POWERUP_LENGTH = int(SCREEN_WIDTH/20)
 
@@ -59,7 +59,7 @@ class Player(InstructionGroup):
     def __init__(self, listen_collision_above_blocks=None, listen_collision_ground=None, listen_collision_powerup=None, listen_collision_below_blocks=None):
         super(Player, self).__init__()
         self.pos = (PLAYER_X-PLAYER_WIDTH, GROUND_Y)
-        self.texture = Image('img/shark_figure.jpg').texture
+        self.texture = Image('img/shark.png').texture
         self.add(Color(1,1,1))
         self.rect = Rectangle(pos=self.pos, size=(PLAYER_WIDTH, PLAYER_HEIGHT), texture=self.texture)
         self.add(self.rect)

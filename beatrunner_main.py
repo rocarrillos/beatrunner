@@ -39,36 +39,8 @@ class MainWidget(BaseWidget) :
             self.audio_manager.play_jump_effect()
             self.game_display.on_jump()
 
-        #############################################
-        # Testing functions
-        # These are put in by Rodrigo and will be taken out once
-        # the thing is complete
-        #############################################
-        if keycode[1] == "u":
-            self.audio_manager.speedup()
-        if keycode[1] == "d":
-            self.audio_manager.slowdown()
-
-        if keycode[1] == "w":
-            self.audio_manager.play_win_effect()
-
-        if keycode[1] == "l":
-            self.audio_manager.play_lose_effect()
-
-        if keycode[1] == "b":
-            self.audio_manager.bass_boost()
-
     def on_key_up(self, keycode):
         self.game_display.on_fall()
-
-        if keycode[1] == "w":
-            self.audio_manager.stop_win_effect()
-
-        if keycode[1] == "l":
-            self.audio_manager.stop_lose_effect()
-
-        if keycode[1] == "b":
-            self.audio_manager.reset_filter()
 
         if keycode[1] == 't':
             self.song_data.read_data(*self.game_data.song_data_files)  ## transition
