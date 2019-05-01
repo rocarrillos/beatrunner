@@ -280,12 +280,19 @@ class ProgressBars(InstructionGroup):
         self.progress_bars = {}
         self.bar_positions = [(3.7* SCREEN_WIDTH / 5, SCREEN_HEIGHT * 0.95), (3.7 * SCREEN_WIDTH/5, SCREEN_HEIGHT*0.9), (3.7*SCREEN_WIDTH/5, SCREEN_HEIGHT*0.85)]
         self.text_label = text_label
+        self.primary_song = "Baby Shark"
 
     # add a new bar - pass in a generator object to extract sample length, and the sound name to refer to it
     def add_bar(self, wave_src, sound_name):
         new_bar = SoundProgressBar(wave_src, sound_name, self.bar_positions[len(self.progress_bars)])
         self.progress_bars[sound_name] = new_bar
         self.add(new_bar)
+
+    def set_song_name(self, sound_name):
+        self.primary_song = sound_name
+
+    def get_song_name(self):
+        return self.primary_song
 
     def remove_bar(self, sound_name):
         self.progress_bars.pop(sound_name)
@@ -304,7 +311,7 @@ class ProgressBars(InstructionGroup):
 
     # reset primary song progress bar on transition
     def reset_frame(self):
-        self.progress_bars["Primary Song"].reset_frame()
+        self.progress_bars[self.primary_song].reset_frame()
 
 
 ##
@@ -584,4 +591,6 @@ class GameDisplay(InstructionGroup):
         self.background.change()
         self.block_texture = block_texture
         self.reset_game_speed()
-        self.powerup_bars.reset_frame()
+        self.powerup_bars.remove_bar(self.powerup_bars.get_song_name())
+        self.powerup_bars.add_bar(self.audio_manager.primary_song, self.audio_manager.get_song_name())
+        self.powerup_bars.set_song_name(self.audio_manager.get_song_name())

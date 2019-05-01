@@ -178,6 +178,7 @@ class AudioManager(object):
         self.secondary_filter = Filter(self.secondary_speed_mod)
         self.secondary_song.set_gain(0.25)
         self.mixer.add(self.secondary_filter)
+        self.idx += 1
 
     # end the song transition by putting all the secondary song refs as the primary song refs.
     # remove the primary song from the mixer.
@@ -191,7 +192,6 @@ class AudioManager(object):
         self.primary_filter = self.secondary_filter
         self.secondary_song, self.secondary_speed_mod, self.secondary_filter = None, None, None
         self.secondary_audiofile = ""
-        self.idx += 1
         if self.sampler: self.reset_sample()
 
     # reset the sampling and reinstate the normal playing song
