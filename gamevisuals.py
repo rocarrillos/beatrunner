@@ -280,7 +280,7 @@ class ProgressBars(InstructionGroup):
         removed = []
         self.text_label.text = ""
         for bar in self.progress_bars:
-            self.text_label.text += bar + ":\n"
+            self.text_label.text += bar + "\n"
             kept = self.progress_bars[bar].on_update(dt)
             if not kept:
                 removed.append(bar)
@@ -376,7 +376,7 @@ class GameDisplay(InstructionGroup):
         self.block_texture = "img/wave.png"
 
         self.powerup_bars = ProgressBars(label)
-        self.powerup_bars.add_bar(self.audio_manager.primary_song, "Primary Song")
+        self.powerup_bars.add_bar(self.audio_manager.primary_song, self.audio_manager.get_song_name())
         self.add(self.powerup_bars)
 
     # toggle paused of game or not

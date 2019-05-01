@@ -36,6 +36,8 @@ class AudioManager(object):
         self.secondary_speed_mod = None
         self.primary_filter = Filter(self.primary_speed_mod)
         self.secondary_filter = None
+        self.idx = 0
+        self.songs = ["Baby Shark", "Closer", "Mi Gente"]
 
         self.volume = 100
         self.primary_song.set_gain(0.5)
@@ -71,6 +73,9 @@ class AudioManager(object):
         
     def toggle(self):
         self.active = not self.active
+
+    def get_song_name(self):
+        return self.songs[self.idx]
 
     # VOLUME EFFECTS
     def lower_volume(self):
@@ -177,6 +182,7 @@ class AudioManager(object):
         self.primary_filter = self.secondary_filter
         self.secondary_song, self.secondary_speed_mod, self.secondary_filter = None, None, None
         self.secondary_audiofile = ""
+        self.idx += 1
         if self.sampler: self.reset_sample()
 
     def reset_sample(self):
