@@ -222,6 +222,9 @@ class Background(InstructionGroup):
         self.counter = self.counter + 1 if self.counter < len(self.bgs) else self.counter
         self.bg.texture = Image(self.bgs[self.counter]).texture
 
+    def show_death(self):
+        self.bg.texture = Image("img/youdied.jpg").texture
+
 
 ##
 # POWERUP CLASS
@@ -392,6 +395,7 @@ class GameDisplay(InstructionGroup):
         self.powerups = set()  # on-screen powerups
 
         self.paused = True
+        self.over = False
 
         self.index_to_y = [0, int(SCREEN_HEIGHT/5), int(SCREEN_HEIGHT * 2/5), int(SCREEN_HEIGHT*3/5)]
 
@@ -410,8 +414,8 @@ class GameDisplay(InstructionGroup):
                                   'sample_off':[self.audio_manager.sample_off],
                                   'reset_sample':[self.audio_manager.reset_sample],
                                   'riser':[self.audio_manager.riser],
-                                  "trophy": [self.audio_manager.toggle, self.toggle],
-                                  'danger': [self.audio_manager.toggle, self.toggle]}
+                                  "trophy": [self.audio_manager.toggle, self.toggle, self.win_game],
+                                  'danger': [self.audio_manager.toggle, self.toggle, self.lose_game]}
 
         self.game_speed = INIT_RIGHT_SPEED
         self.block_texture = "img/wave.png"
@@ -431,6 +435,15 @@ class GameDisplay(InstructionGroup):
 
     def on_fall(self):
         self.player.on_fall()
+
+    def lose_game(self):
+        self.over = True
+        self.remove(self.background)
+        self.background.show_death()
+        self.add(self.background)
+
+    def win_game(self):
+        self.add(Rectangle(pos=(0, 0), size=[SCREEN_WIDTH, SCREEN_HEIGHT]))
 
     # call every frame to make blocks and powerups flow towards player
     def on_update(self, dt):
