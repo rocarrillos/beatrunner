@@ -352,9 +352,9 @@ class GameDisplay(InstructionGroup):
         self.blocks = set()  # on-screen blocks
         self.powerups = set()  # on-screen powerups
 
-        self.paused = False
+        self.paused = True
 
-        self.index_to_y = [int(SCREEN_HEIGHT/5), int(SCREEN_HEIGHT * 2/5), int(SCREEN_HEIGHT*3/5)]
+        self.index_to_y = [0, int(SCREEN_HEIGHT/5), int(SCREEN_HEIGHT * 2/5), int(SCREEN_HEIGHT*3/5)]
 
         self.powerup_listeners = {'powerup_note': [self.audio_manager.play_powerup_effect],
                                   'lower_volume': [self.audio_manager.lower_volume],
@@ -421,7 +421,7 @@ class GameDisplay(InstructionGroup):
                             self.song_data[self.current_block][0] - SECONDS_FROM_RIGHT_TO_PLAYER:
                 y_pos = self.song_data[self.current_block][1]
                 units = self.song_data[self.current_block][2]
-                new_block = Block((SCREEN_WIDTH, self.index_to_y[y_pos-1] + GROUND_Y), Color(1,1,1), units, self.game_speed, self.block_texture)
+                new_block = Block((SCREEN_WIDTH, self.index_to_y[y_pos] + GROUND_Y), Color(1,1,1), units, self.game_speed, self.block_texture)
                 self.blocks.add(new_block)
                 self.add(new_block)
                 self.current_block += 1
@@ -508,6 +508,7 @@ class GameDisplay(InstructionGroup):
 
     def transition(self, player_texture, ground_texture, block_texture):
         self.player.set_texture(player_texture)
-        self.ground.set_texture(ground_texture)  # this step is generating a lot of latency TODO(clhsu)
+        self.ground.set_texture(ground_texture)
         self.background.change()
         self.block_texture = block_texture
+        self.reset_game_speed()

@@ -58,7 +58,7 @@ class AudioManager(object):
         self.mixer.add(self.primary_filter)
         self.mixer.add(self.sfx)
         self.audio.set_generator(self.mixer)
-        self.active = True
+        self.active = False
 
         # sample states
         self.sample_on_frame, self.sample_off_frame = 0, 0
@@ -152,12 +152,13 @@ class AudioManager(object):
         self.transition_score_dict["sample"] = self.get_current_frame()
 
     def sample_off(self, frame):
-        self.sample_off_frame = frame
-        sample = WaveGenerator(WaveBuffer(self.primary_audiofile, self.sample_on_frame,frame - self.sample_on_frame), loop=True)
-        self.sampler = SpeedModulator(sample, speed=self.primary_speed_mod.speed)
-        self.mixer.add(self.sampler)
-        sample.set_gain(self.primary_song.get_gain())
-        self.primary_song.set_gain(0)
+        if self.sample_on_frame:
+            self.sample_off_frame = frame
+            sample = WaveGenerator(WaveBuffer(self.primary_audiofile, self.sample_on_frame,frame - self.sample_on_frame), loop=True)
+            self.sampler = SpeedModulator(sample, speed=self.primary_speed_mod.speed)
+            self.mixer.add(self.sampler)
+            sample.set_gain(self.primary_song.get_gain())
+            self.primary_song.set_gain(0)
 
     def start_transition_song(self, audio_file):
         self.secondary_song = WaveGenerator(WaveFile(audio_file))
@@ -182,6 +183,7 @@ class AudioManager(object):
         self.mixer.remove(self.sampler)
         self.sampler = None
         self.primary_song.set_gain(0.5)
+        self.sample_on_frame = 0
 
     def reset_speed(self):
         self.primary_speed_mod.set_speed(1)

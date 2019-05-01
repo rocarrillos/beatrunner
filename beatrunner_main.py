@@ -80,7 +80,7 @@ class MainWidget(BaseWidget) :
             self.audio_manager.end_transition_song()
 
     def on_update(self) :
-        self.label.text = "Welcome to Beat Runner\nw to jump\nhold down t to transition\nLevel "+str(self.game_data.level + 1) + "\n"
+        self.label.text = "Welcome to Beat Runner\n[p] play/pause [w] jump [t hold] transition\nLevel "+str(self.game_data.level + 1) + "\n"
         self.label.text += "Score: " + str(self.audio_manager.score) + "\n"
         self.anim_group.on_update()
         self.audio_manager.on_update()
