@@ -29,6 +29,7 @@ class MainWidget(BaseWidget) :
     def on_key_down(self, keycode, modifiers):
         if keycode[1] == 'p':  # PAUSE
             self.game_display.toggle()
+            self.audio_manager.toggle()
 
         if keycode[1] == 'z':
             pass
