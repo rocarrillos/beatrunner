@@ -138,12 +138,14 @@ class AudioManager(object):
     def speedup(self):
         self.primary_speed_mod.set_speed(self.primary_speed_mod.get_speed() * 2**(1/12))
         if self.sampler: self.sampler.set_speed(self.primary_speed_mod.get_speed() * 2**(1/12))
+        if self.high_sampler: self.high_sampler.set_speed(self.primary_speed_mod.get_speed() * 2**(1/12))
         if self.primary_high_filter: self.primary_high_filter.set_speed(self.primary_speed_mod.get_speed() * 2**(1/12))
         self.score += 10
 
     def slowdown(self):
         self.primary_speed_mod.set_speed(self.primary_speed_mod.get_speed() / 2**(1/12))
         if self.sampler: self.sampler.set_speed(self.primary_speed_mod.get_speed() / 2 ** (1 / 12))
+        if self.high_sampler: self.high_sampler.set_speed(self.primary_speed_mod.get_speed() / 2 ** (1 / 12))
         if self.primary_high_filter: self.primary_high_filter.set_speed(self.primary_speed_mod.get_speed() / 2 ** (1 / 12))
         self.score += 10
 
@@ -341,7 +343,7 @@ class FilterShape(object):
     def update(self, frame):
         if self.shape == "reg_to_high":
             self.regular.set_gain(0.5-0.5*(frame-self.start_frame)/(8*Audio.sample_rate))
-            self.high.set_gain(0.5*(frame-self.start_frame)/(8*Audio.sample_rate))
+            self.high.set_gain(0.75*(frame-self.start_frame)/(8*Audio.sample_rate))
         elif self.shape == "high":
             self.regular.set_gain(0)
             self.high.set_gain(0.5)
