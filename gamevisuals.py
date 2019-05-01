@@ -43,7 +43,8 @@ TEXTURES = {'vocals_boost': Image("img/mic.jpg").texture, 'bass_boost': Image("i
             "slowdown": Image("img/ice.jpg").texture,"underwater":Image("img/sub.jpg").texture,
             "sample_on": Image("img/sample_on.png").texture, "sample_off": Image("img/sample_off.png").texture,
             "reset_sample":Image("img/sample_off.png").texture, "start_transition": Image("img/green_spiral.png").texture,
-            "end_transition": Image("img/red_spiral.png").texture, "riser":Image("img/riser.png").texture}
+            "end_transition": Image("img/red_spiral.png").texture, "riser":Image("img/riser.png").texture,
+            "reg_to_high":Image("img/reg_to_high.png").texture}
 
 gravity = np.array((0, -1800))
 
@@ -360,10 +361,9 @@ class GameDisplay(InstructionGroup):
                                   'lower_volume': [self.audio_manager.lower_volume],
                                   'raise_volume': [self.audio_manager.raise_volume],
                                   'error': [self.audio_manager.play_error_effect],
-                                  'bass_boost': [self.audio_manager.bass_boost],
-                                  'vocals_boost': [self.audio_manager.vocals_boost],
+                                  'reg_to_high': [self.audio_manager.filter_on],
+                                  'vocals_boost': [self.audio_manager.filter_on],
                                   'reset_filter': [self.audio_manager.reset_filter],
-                                  'underwater': [self.audio_manager.underwater],
                                   'speedup': [self.audio_manager.speedup, self.increase_game_speed],
                                   'slowdown': [self.audio_manager.slowdown, self.decrease_game_speed],
                                   'reset_speed': [self.audio_manager.reset_speed, self.reset_game_speed],
@@ -480,6 +480,10 @@ class GameDisplay(InstructionGroup):
                         powerup.activate([[self.current_frame]])
                     elif powerup.powerup_type == "riser":
                         powerup.activate([[self.powerup_bars.add_bar]])
+                    elif powerup.powerup_type == "vocals_boost":
+                        powerup.activate([["high", self.current_frame, self.powerup_bars.add_bar]])
+                    elif powerup.powerup_type == "reg_to_high":
+                        powerup.activate([["reg_to_high", self.current_frame, self.powerup_bars.add_bar]])
                     else:
                         powerup.activate()
                     return powerup
