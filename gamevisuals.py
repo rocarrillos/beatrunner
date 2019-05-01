@@ -85,7 +85,7 @@ class Player(InstructionGroup):
         if not self.jump_anim and not self.fall_on:
             current_y = self.rect.pos[1]
             max_y = self.rect.pos[1] + int(7 * SCREEN_HEIGHT / 20)
-            slow_down_y_1 = self.rect.pos[1] + int(SCREEN_HEIGHT / 5)
+            slow_down_y_1 = self.rect.pos[1] + int(SCREEN_HEIGHT / 5)  # some hardcoded anims right here
             slow_down_y_2 = self.rect.pos[1] + int(5 * SCREEN_HEIGHT / 20)
             slow_down_y_3 = self.rect.pos[1] + int(6.5 * SCREEN_HEIGHT/20)
             self.jump_anim = KFAnim((0,current_y), (0.25, slow_down_y_1), (0.35, slow_down_y_2), (0.5, slow_down_y_3), (0.6, max_y))
@@ -107,6 +107,8 @@ class Player(InstructionGroup):
         # print("position", self.rect.pos, self.fall_vel * dt)
         if self.jump_anim and self.dt > 0.6:
             self.reset_on_fall()
+
+        # LISTEN FOR COLLISIONS #
 
         if self.listen_collision_below_blocks and self.listen_collision_ground:
             collision = self.listen_collision_below_blocks(self) or self.listen_collision_ground(self)
@@ -138,6 +140,8 @@ class Player(InstructionGroup):
 #   args: position pos (x,y) for each block object
 #   args: color to make the block
 #   units: number of square blocks in a row to create the whole block.
+#   speed: how fast the block should be travelling
+#   texture: texture of the block image
 ##
 class Block(InstructionGroup):
     def __init__(self, pos, color, units, speed, texture):
@@ -225,6 +229,7 @@ class Background(InstructionGroup):
 # args: powerup_type (string? integer?) that contributes to determining texture of block
 # args: activation_listener - passed in function that is activated when powerup is run into
 # waits to see powerup is activated (and whether it should be taken off canvas)
+##
 class Powerup(InstructionGroup):
     def __init__(self, pos, powerup_type, speed, activation_listeners=None):
         super(Powerup, self).__init__()
@@ -262,6 +267,12 @@ class Powerup(InstructionGroup):
         self.speed = new_speed
 
 
+##
+# PROGRESS BAR CLASS
+# object that holds all the progress bars for risers, primary songs, filters
+# also manages the label of text for the progress bars
+# tracks on update each 0.5 sec
+##
 class ProgressBars(InstructionGroup):
     def __init__(self, text_label):
         super(ProgressBars, self).__init__()
@@ -269,6 +280,7 @@ class ProgressBars(InstructionGroup):
         self.bar_positions = [(3.7* SCREEN_WIDTH / 5, SCREEN_HEIGHT * 0.95), (3.7 * SCREEN_WIDTH/5, SCREEN_HEIGHT*0.9), (3.7*SCREEN_WIDTH/5, SCREEN_HEIGHT*0.85)]
         self.text_label = text_label
 
+    # add a new bar - pass in a generator object to extract sample length, and the sound name to refer to it
     def add_bar(self, wave_src, sound_name):
         new_bar = SoundProgressBar(wave_src, sound_name, self.bar_positions[len(self.progress_bars)])
         self.progress_bars[sound_name] = new_bar
@@ -289,17 +301,26 @@ class ProgressBars(InstructionGroup):
             self.remove(self.progress_bars[r])
             self.progress_bars.pop(r)
 
+    # reset primary song progress bar on transition
     def reset_frame(self):
         self.progress_bars["Primary Song"].reset_frame()
 
 
+##
+# SOUND PROGRESS BAR OBJECT
+# This object is an individual bar, and contains the graphics for animating the bar
+# on progress through the audio sample.
+# args: wave_src - the generator to extract length of sample from
+# args: sound_name - the sound name to refer to the object
+# pos: the position to draw the progress bar
+##
 class SoundProgressBar(InstructionGroup):
     def __init__(self, wave_src, sound_name, pos):
         super(SoundProgressBar, self).__init__()
         self.wave_gen = wave_src
         self.sound_name = sound_name
-        self.dt = 0
-        self.end_frame = wave_src.get_length()
+        self.dt = 0  # the total time we've spent playing the audio sample
+        self.end_frame = wave_src.get_length()  # the total length of the sample.
         self.outside_color = Color(1,1,1)
         self.outside_rect = Rectangle(pos=pos, size=[SCREEN_WIDTH/6, SCREEN_HEIGHT/20-5])
         self.inside_color = Color(0,1,0)
@@ -313,15 +334,16 @@ class SoundProgressBar(InstructionGroup):
 
     def on_update(self, dt):
         self.dt += dt
-        if self.dt * Audio.sample_rate / self.end_frame > 0.9:
+        if self.dt * Audio.sample_rate / self.end_frame > 0.9:  # red
             self.inside_color.g = 0
-        elif self.dt * Audio.sample_rate / self.end_frame > 0.67:
+        elif self.dt * Audio.sample_rate / self.end_frame > 0.67:  # yellow
             self.inside_color.r = 1
 
         self.inside_rect.size = [int((self.dt * Audio.sample_rate / self.end_frame) * self.max_length), SCREEN_HEIGHT/20 -9]
 
         return not self.dt * Audio.sample_rate > self.end_frame
 
+    # on transition, reset the progress bar.
     def reset_frame(self):
         self.dt = 0
         self.inside_color.r = 0
@@ -384,6 +406,7 @@ class GameDisplay(InstructionGroup):
         self.game_speed = INIT_RIGHT_SPEED
         self.block_texture = "img/wave.png"
 
+        # powerup progress bars
         self.powerup_bars = ProgressBars(label)
         self.powerup_bars.add_bar(self.audio_manager.primary_song, "Primary Song")
         self.add(self.powerup_bars)
@@ -497,6 +520,7 @@ class GameDisplay(InstructionGroup):
                     return powerup
         return None
 
+    # like with audio, increase or decrease game speed
     def increase_game_speed(self):
         self.game_speed = self.game_speed * 2**(1/12)
         for block in self.blocks:
@@ -518,6 +542,7 @@ class GameDisplay(InstructionGroup):
         for powerup in self.powerups:
             powerup.change_speed(self.game_speed)
 
+    # on transition, change the images, reset game speed, and reset the progress bar.
     def transition(self, player_texture, ground_texture, block_texture):
         self.player.set_texture(player_texture)
         self.ground.set_texture(ground_texture)

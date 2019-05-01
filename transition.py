@@ -6,6 +6,16 @@ BLOCK_IMAGES = ["img/wav.png", "img/brick.jpg"]
 GROUND_IMAGES = ["img/sand.png", "img/grass.jpg"]
 
 
+##
+# Game data file. This file basically stores all file metadata and image names
+# and iterates through them on transition
+# To add a new level, just
+#  - add the audio path to AUDIO_FILES
+#  - add the blocks and powerup paths in tuple form to SONG_DATA_FILES
+#  - add a new player image to PLAYER_IMAGES
+#  - add a new block image to BLOCK_IMAGES
+#  - add a new ground image to GROUND_IMAGES
+##
 class GameData(object):
     def __init__(self):
         super(GameData, self).__init__()

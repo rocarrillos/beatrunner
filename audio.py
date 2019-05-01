@@ -61,8 +61,8 @@ class AudioManager(object):
         self.active = False
 
         # sample states
-        self.sample_on_frame, self.sample_off_frame = 0, 0
-        self.sampler = None
+        self.sample_on_frame, self.sample_off_frame = 0, 0  # [on, off] frames for the audio sample
+        self.sampler = None  # generator for the audio sample
 
         # scoring data
         self.transition_score_dict = {"riser":None, "filter":None, "raise_volume": None, "lower_volume": None,
@@ -136,21 +136,26 @@ class AudioManager(object):
     def ethereal(self):
         pass
 
+    # speedup the song and/or sampler
     def speedup(self):
         self.primary_speed_mod.set_speed(self.primary_speed_mod.get_speed() * 2**(1/12))
         if self.sampler: self.sampler.set_speed(self.primary_speed_mod.get_speed() * 2**(1/12))
         self.score += 10
 
+    # slow down the song and /or sampler
     def slowdown(self):
         self.primary_speed_mod.set_speed(self.primary_speed_mod.get_speed() / 2**(1/12))
         if self.sampler: self.sampler.set_speed(self.primary_speed_mod.get_speed() / 2 ** (1 / 12))
         self.score += 10
 
-    # SAMPLE EFFECTS
+    ###### SAMPLE EFFECTS #########
+    # start the sample by retaining current frame
     def sample_on(self, frame):
         self.sample_on_frame = frame
         self.transition_score_dict["sample"] = self.get_current_frame()
 
+    # end the sample by loading in an audio snippet from [sample_on to sample off]
+    # add it to the mixer, and set the primary song gain to 0 (but keep it playing)
     def sample_off(self, frame):
         if self.sample_on_frame:
             self.sample_off_frame = frame
@@ -160,6 +165,7 @@ class AudioManager(object):
             sample.set_gain(self.primary_song.get_gain())
             self.primary_song.set_gain(0)
 
+    # start the song transition. Here, init the new song as a WaveGenerator and add it to the mixer.
     def start_transition_song(self, audio_file):
         self.secondary_song = WaveGenerator(WaveFile(audio_file))
         self.secondary_audiofile = audio_file
@@ -168,6 +174,9 @@ class AudioManager(object):
         self.secondary_song.set_gain(0.25)
         self.mixer.add(self.secondary_filter)
 
+    # end the song transition by putting all the secondary song refs as the primary song refs.
+    # remove the primary song from the mixer.
+    # remove any samples that may be playing.
     def end_transition_song(self):
         self.score += self.get_transition_score()
         self.mixer.remove(self.primary_filter)
@@ -179,6 +188,7 @@ class AudioManager(object):
         self.secondary_audiofile = ""
         if self.sampler: self.reset_sample()
 
+    # reset the sampling and reinstate the normal playing song
     def reset_sample(self):
         self.mixer.remove(self.sampler)
         self.sampler = None
@@ -191,6 +201,7 @@ class AudioManager(object):
     def get_current_frame(self):
         return self.primary_song.frame
 
+    # calc the transition score based off of risers/samplers (and other effects in the future)
     def get_transition_score(self):
         score = 0
         if self.transition_score_dict["riser"]:
