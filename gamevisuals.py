@@ -289,6 +289,9 @@ class ProgressBars(InstructionGroup):
             self.remove(self.progress_bars[r])
             self.progress_bars.pop(r)
 
+    def reset_frame(self):
+        self.progress_bars["Primary Song"].reset_frame()
+
 
 class SoundProgressBar(InstructionGroup):
     def __init__(self, wave_src, sound_name, pos):
@@ -318,6 +321,11 @@ class SoundProgressBar(InstructionGroup):
         self.inside_rect.size = [int((self.dt * Audio.sample_rate / self.end_frame) * self.max_length), SCREEN_HEIGHT/20 -9]
 
         return not self.dt * Audio.sample_rate > self.end_frame
+
+    def reset_frame(self):
+        self.dt = 0
+        self.inside_color.r = 0
+        self.inside_color.g = 1
 
 
 ##
@@ -395,7 +403,7 @@ class GameDisplay(InstructionGroup):
     def on_update(self, dt):
         if not self.paused:
             self.player.on_update(dt)
-            if self.current_frame - self.last_powerup_bars_update > Audio.sample_rate / 2:
+            if abs(self.current_frame - self.last_powerup_bars_update) > Audio.sample_rate / 2:
                 self.powerup_bars.on_update(dt + 0.5)
                 self.last_powerup_bars_update = self.current_frame
             removed_items = set()
@@ -516,3 +524,4 @@ class GameDisplay(InstructionGroup):
         self.background.change()
         self.block_texture = block_texture
         self.reset_game_speed()
+        self.powerup_bars.reset_frame()
