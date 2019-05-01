@@ -11,6 +11,7 @@
 
 import numpy as np
 
+
 # generates audio data by asking an audio-source (ie, WaveFile) for that data.
 class WaveGenerator(object):
     def __init__(self, wave_source, loop=False):
@@ -21,6 +22,9 @@ class WaveGenerator(object):
         self.paused = False
         self._release = False
         self.gain = 1.0
+
+    def get_length(self):
+        return self.source.get_length()
 
     def reset(self):
         self.paused = True

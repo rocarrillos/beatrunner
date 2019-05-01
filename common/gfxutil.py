@@ -25,7 +25,15 @@ import numpy as np
 def topleft_label() :
     l = Label(text = "text", valign='top', font_size='20sp',
               pos=(Window.width * 0.5, Window.height * 0.4),
-              text_size=(Window.width, Window.height))
+              text_size=(Window.width, Window.height),
+              outline_width=1)
+    return l
+
+def topright_label():
+    l = Label(text="text",valign='top', font_size='20sp',
+              pos=(Window.width, Window.height *0.4),
+              text_size=(Window.width, Window.height),
+              outline_width=1)
     return l
 
 # Override Ellipse class to add centered functionality.

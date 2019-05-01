@@ -45,6 +45,9 @@ class WaveFile(object):
     def get_num_channels(self):
         return self.num_channels
 
+    def get_length(self):
+        return self.end
+
 # We can generalize the thing that WaveFile does - it provides arbitrary wave
 # data. We can define a "wave data providing interface" (called WaveSource)
 # if it can support the function:
@@ -82,6 +85,9 @@ class WaveBuffer(object):
 
     def get_num_channels(self):
         return self.num_channels
+
+    def get_length(self):
+        return len(self.data)
 
 
 
