@@ -127,9 +127,11 @@ class AudioManager(object):
     def underwater(self):
         self.primary_filter.change_pass("band")
 
-    def riser(self):
-        self.mixer.add(WaveGenerator(WaveFile("data/riser1.wav")))
+    def riser(self, add_bar=None):
+        riser = WaveGenerator(WaveFile("data/riser1.wav"))
+        self.mixer.add(riser)
         self.transition_score_dict["riser"] = self.get_current_frame()
+        if add_bar: add_bar(riser, "riser")
 
     def ethereal(self):
         pass

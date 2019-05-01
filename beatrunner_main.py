@@ -8,12 +8,13 @@ class MainWidget(BaseWidget) :
     def __init__(self):
         super(MainWidget, self).__init__()
         self.anim_group = AnimGroup()
+        self.other_label = topright_label()
         self.game_data = GameData()
         self.audio_manager = AudioManager(self.game_data.audio_file_name)
 
         self.song_data = SongData()
         self.song_data.read_data(*self.game_data.song_data_files)
-        self.game_display = GameDisplay(self.song_data.blocks, self.song_data.powerups, self.audio_manager)
+        self.game_display = GameDisplay(self.song_data.blocks, self.song_data.powerups, self.audio_manager, self.other_label)
         self.anim_group.add(self.game_display)
 
         self.playing = False
@@ -22,6 +23,8 @@ class MainWidget(BaseWidget) :
 
         self.label = topleft_label()
         self.add_widget(self.label)
+
+        self.add_widget(self.other_label)
 
     def on_key_down(self, keycode, modifiers):
         if keycode[1] == 'p':  # PAUSE

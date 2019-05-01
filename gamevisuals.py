@@ -242,6 +242,64 @@ class Powerup(InstructionGroup):
         self.speed = new_speed
 
 
+class ProgressBars(InstructionGroup):
+    def __init__(self, text_label):
+        super(ProgressBars, self).__init__()
+        self.progress_bars = {}
+        self.bar_positions = [(3.7* SCREEN_WIDTH / 5, SCREEN_HEIGHT * 0.95), (3.7 * SCREEN_WIDTH/5, SCREEN_HEIGHT*0.9), (3.7*SCREEN_WIDTH/5, SCREEN_HEIGHT*0.85)]
+        self.text_label = text_label
+
+    def add_bar(self, wave_src, sound_name):
+        new_bar = SoundProgressBar(wave_src, sound_name, self.bar_positions[len(self.progress_bars)])
+        self.progress_bars[sound_name] = new_bar
+        self.add(new_bar)
+
+    def remove_bar(self, sound_name):
+        self.progress_bars.pop(sound_name)
+
+    def on_update(self, dt):
+        removed = []
+        self.text_label.text = ""
+        for bar in self.progress_bars:
+            self.text_label.text += bar + ":\n"
+            kept = self.progress_bars[bar].on_update(dt)
+            if not kept:
+                removed.append(bar)
+        for r in removed:
+            self.remove(self.progress_bars[r])
+            self.progress_bars.pop(r)
+
+
+class SoundProgressBar(InstructionGroup):
+    def __init__(self, wave_src, sound_name, pos):
+        super(SoundProgressBar, self).__init__()
+        self.wave_gen = wave_src
+        self.sound_name = sound_name
+        self.dt = 0
+        self.end_frame = wave_src.get_length()
+        self.outside_color = Color(1,1,1)
+        self.outside_rect = Rectangle(pos=pos, size=[SCREEN_WIDTH/6, SCREEN_HEIGHT/20-5])
+        self.inside_color = Color(0,1,0)
+        self.inside_rect = Rectangle(pos=pos+np.array([2,2]), size=[0, SCREEN_HEIGHT/20-9])
+        self.max_length = SCREEN_WIDTH/6-4
+
+        self.add(self.outside_color)
+        self.add(self.outside_rect)
+        self.add(self.inside_color)
+        self.add(self.inside_rect)
+
+    def on_update(self, dt):
+        self.dt += dt
+        if self.dt * Audio.sample_rate / self.end_frame > 0.9:
+            self.inside_color.g = 0
+        elif self.dt * Audio.sample_rate / self.end_frame > 0.67:
+            self.inside_color.r = 1
+
+        self.inside_rect.size = [int((self.dt * Audio.sample_rate / self.end_frame) * self.max_length), SCREEN_HEIGHT/20 -9]
+
+        return not self.dt * Audio.sample_rate > self.end_frame
+
+
 ##
 # WRAPPER CLASS FOR THE GAME DISPLAY
 # args: song_data, powerup_data: annotations indicating where blocks and powerups should be, respectively.
@@ -249,7 +307,7 @@ class Powerup(InstructionGroup):
 # powerup_data: [sec, measure, powerup_str]
 # this class contains the PLAYER object, GROUND object, and all POWERUPS AND BLOCKS on screen
 class GameDisplay(InstructionGroup):
-    def __init__(self, song_data, powerup_data, audio_manager):
+    def __init__(self, song_data, powerup_data, audio_manager, label):
         super(GameDisplay, self).__init__()
         self.song_data = song_data
         self.powerup_data = powerup_data
@@ -296,6 +354,10 @@ class GameDisplay(InstructionGroup):
         self.game_speed = INIT_RIGHT_SPEED
         self.block_texture = "img/wave.png"
 
+        self.powerup_bars = ProgressBars(label)
+        self.powerup_bars.add_bar(self.audio_manager.primary_song, "Primary Song")
+        self.add(self.powerup_bars)
+
     # toggle paused of game or not
     def toggle(self):
         self.paused = not self.paused
@@ -310,6 +372,7 @@ class GameDisplay(InstructionGroup):
     def on_update(self, dt):
         if not self.paused:
             self.player.on_update(dt)
+            self.powerup_bars.on_update(dt)
             removed_items = set()
 
             # UPDATE EACH POWERUP AND BLOCK, AND TRACK IF THEY ARE REMOVED OR NOT FROM THE GAME FRAME
@@ -394,6 +457,8 @@ class GameDisplay(InstructionGroup):
                                         player.get_pos()[1] < powerup.get_pos()[1] + POWERUP_LENGTH < player.get_pos()[1] + PLAYER_HEIGHT:
                     if powerup.powerup_type == "sample_on" or powerup.powerup_type == "sample_off":
                         powerup.activate([[self.current_frame]])
+                    elif powerup.powerup_type == "riser":
+                        powerup.activate([[self.powerup_bars.add_bar]])
                     else:
                         powerup.activate()
                     return powerup

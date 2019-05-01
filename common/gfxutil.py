@@ -28,6 +28,12 @@ def topleft_label() :
               text_size=(Window.width, Window.height))
     return l
 
+def topright_label():
+    l = Label(text="text",valign='top', font_size='20sp',
+              pos=(Window.width, Window.height *0.4),
+              text_size=(Window.width, Window.height))
+    return l
+
 # Override Ellipse class to add centered functionality.
 # use cpos and csize to set/get the ellipse based on a centered registration point
 # instead of a bottom-left registration point
