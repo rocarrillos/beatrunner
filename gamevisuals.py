@@ -43,7 +43,8 @@ TEXTURES = {'vocals_boost': Image("img/mic.jpg").texture, 'bass_boost': Image("i
             "slowdown": Image("img/ice.jpg").texture,"underwater":Image("img/sub.jpg").texture,
             "sample_on": Image("img/sample_on.png").texture, "sample_off": Image("img/sample_off.png").texture,
             "reset_sample":Image("img/sample_off.png").texture, "start_transition": Image("img/green_spiral.png").texture,
-            "end_transition": Image("img/red_spiral.png").texture, "riser":Image("img/riser.png").texture}
+            "end_transition": Image("img/red_spiral.png").texture, "riser":Image("img/riser.png").texture,
+            "trophy": Image("img/trophy.png").texture, "danger": Image("img/skull.png").texture}
 
 gravity = np.array((0, -1800))
 
@@ -371,7 +372,9 @@ class GameDisplay(InstructionGroup):
                                   'sample_on':[self.audio_manager.sample_on],
                                   'sample_off':[self.audio_manager.sample_off],
                                   'reset_sample':[self.audio_manager.reset_sample],
-                                  'riser':[self.audio_manager.riser]}
+                                  'riser':[self.audio_manager.riser],
+                                  "trophy": [self.audio_manager.toggle, self.toggle],
+                                  'danger': [self.audio_manager.toggle, self.toggle]}
 
         self.game_speed = INIT_RIGHT_SPEED
         self.block_texture = "img/wave.png"
@@ -423,23 +426,55 @@ class GameDisplay(InstructionGroup):
             # COMPARE ANNOTATION NOTES TO CURRENT FRAME AND ADD NEW OBJECTS ACCORDINGLY
             if self.current_block < len(self.song_data) and self.current_frame / Audio.sample_rate > \
                             self.song_data[self.current_block][0] - SECONDS_FROM_RIGHT_TO_PLAYER:
-                y_pos = self.song_data[self.current_block][1]
-                units = self.song_data[self.current_block][2]
-                new_block = Block((SCREEN_WIDTH, self.index_to_y[y_pos] + GROUND_Y), Color(1,1,1), units, self.game_speed, self.block_texture)
-                self.blocks.add(new_block)
-                self.add(new_block)
+                self.add_block(self.current_block)
                 self.current_block += 1
+                
+            # this is how we add new blocks. export to individual functions so we can
+            # add new blocks/powerups easily
 
             if self.current_powerup < len(self.powerup_data) and self.current_frame / Audio.sample_rate > self.powerup_data[
                 self.current_powerup][0] - SECONDS_FROM_RIGHT_TO_PLAYER:
-                y_pos = self.powerup_data[self.current_powerup][1]
-                p_type = self.powerup_data[self.current_powerup][2]
-                new_powerup = Powerup((SCREEN_WIDTH, self.index_to_y[y_pos-1] + GROUND_Y + BLOCK_HEIGHT), p_type, self.game_speed, self.powerup_listeners[p_type])
-                self.powerups.add(new_powerup)
-                self.add(new_powerup)
+                self.add_powerup(self.current_powerup)
                 self.current_powerup += 1
 
         return True
+
+    # block adder function
+    def add_block(self, block):
+        """ Creates a new Block object from an index into the list of block tuples and adds it to the game."""
+        y_pos = self.song_data[block][1]
+        units = self.song_data[block][2]
+        new_block = Block((SCREEN_WIDTH, self.index_to_y[y_pos] + GROUND_Y), Color(1,1,1), units, self.game_speed, self.block_texture)
+        self.blocks.add(new_block)
+        self.add(new_block)
+
+    def add_powerup(self, powerup):
+        """Creates a new Powerup object from an index into the list of powerup tuples and adds it to the game."""
+        y_pos = self.powerup_data[powerup][1]
+        p_type = self.powerup_data[powerup][2]
+        new_powerup = Powerup((SCREEN_WIDTH, self.index_to_y[y_pos-1] + GROUND_Y + BLOCK_HEIGHT), p_type, self.game_speed, self.powerup_listeners[p_type])
+        self.powerups.add(new_powerup)
+        self.add(new_powerup)
+
+    # add new blocks for new song
+    def change_blocks(self):
+        removed_items = set()
+        for block in self.blocks:
+            removed_items.add(block)
+        for item in removed_items:
+            self.remove(item)
+        self.blocks = set()
+        self.current_block = 0
+
+    # add new powerups for new song
+    def add_new_song_powerups(self, new_powerups):
+        removed_items = set()
+        for block in self.blocks:
+            removed_items.add(block)
+        for item in removed_items:
+            self.remove(item)
+        self.powerups = set()
+        self.current_powerup = 0
 
     # update the local current frame variable
     def update_frame(self, frame):

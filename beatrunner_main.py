@@ -2,6 +2,7 @@ from audio import *
 from gamevisuals import *
 from transition import *
 
+import time
 
 # MAINWIDGET FOR TESTING GAME VISUALS INDEPENDENTLY OF THE ENTIRE GAME
 class MainWidget(BaseWidget) :
@@ -13,11 +14,14 @@ class MainWidget(BaseWidget) :
         self.audio_manager = AudioManager(self.game_data.audio_file_name)
 
         self.song_data = SongData()
-        self.song_data.read_data(*self.game_data.song_data_files)
+        self.song_data.read_data(*self.game_data.song_data_files, 0)
         self.game_display = GameDisplay(self.song_data.blocks, self.song_data.powerups, self.audio_manager, self.other_label)
         self.anim_group.add(self.game_display)
 
         self.playing = False
+        self.lifetime = 0
+        self.prev_time = time.time()
+        self.new_time = time.time()
 
         self.canvas.add(self.anim_group)
 
@@ -27,9 +31,10 @@ class MainWidget(BaseWidget) :
         self.add_widget(self.other_label)
 
     def on_key_down(self, keycode, modifiers):
-        if keycode[1] == 'p':  # PAUSE
+        if keycode[1] == 'p':  # PAUSE/PLAY
             self.game_display.toggle()
             self.audio_manager.toggle()
+            self.playing = not self.playing
 
         if keycode[1] == 'z':
             pass
@@ -46,17 +51,25 @@ class MainWidget(BaseWidget) :
         self.game_display.on_fall()
 
         if keycode[1] == 't':
-            self.song_data.read_data(*self.game_data.song_data_files)  ## transition
+            self.song_data.read_data(*self.game_data.song_data_files, self.lifetime)  ## transition
             self.game_display.transition(self.game_data.player_image, self.game_data.ground_image,
                                          self.game_data.block_image)
+            self.game_display.change_blocks()
             self.audio_manager.end_transition_song()
 
     def on_update(self) :
-        self.label.text = "Welcome to Beat Runner\n[p] play/pause [w] jump [t hold] transition\nLevel "+str(self.game_data.level + 1) + "\n"
+        self.label.text = "Level "+str(self.game_data.level + 1) + "\n"
+        # Welcome to Beat Runner\n[p] play/pause [w] jump [t hold] transition\n
         self.label.text += "Score: " + str(self.audio_manager.score) + "\n"
+        if not self.playing:
+            self.label.text += "Press P to play"
         self.anim_group.on_update()
         self.audio_manager.on_update()
         self.game_display.update_frame(self.audio_manager.get_current_frame())
+        if self.playing:
+            self.prev_time = self.new_time
+            self.new_time = time.time()
+            self.lifetime += self.new_time - self.prev_time
 
 
 # holds data for blocks and powerups.
@@ -75,12 +88,14 @@ class SongData(object):
 
     # read the blocks and powerup data. You may want to add a secondary filepath
     # argument if your poweruppath data is stored in a different txt file.
-    def read_data(self, blockpath, poweruppath):
+    def read_data(self, blockpath, poweruppath, time):
+        print(time)
         blocklines = self.lines_from_file(blockpath)
 
         for line in blocklines:
             blockline = line.split()
-            self.blocks.append((float(blockline[0]), int(blockline[2]), int(blockline[3])))
+            self.blocks.append((time + float(blockline[0]), int(blockline[2]), int(blockline[3])))
+        print(len(self.blocks))
         powerups = self.lines_from_file(poweruppath)
         for p in powerups:
             powerup = p.split()
