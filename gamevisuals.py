@@ -198,6 +198,7 @@ class Ground(InstructionGroup):
     def set_texture(self, new_texture):
         self.rect.texture = Image(new_texture).texture
 
+
 class Background(InstructionGroup):
     def __init__(self):
         super(Background, self).__init__()
@@ -378,6 +379,7 @@ class GameDisplay(InstructionGroup):
         self.powerup_bars = ProgressBars(label)
         self.powerup_bars.add_bar(self.audio_manager.primary_song, "Primary Song")
         self.add(self.powerup_bars)
+        self.last_powerup_bars_update = 0
 
     # toggle paused of game or not
     def toggle(self):
@@ -393,7 +395,9 @@ class GameDisplay(InstructionGroup):
     def on_update(self, dt):
         if not self.paused:
             self.player.on_update(dt)
-            self.powerup_bars.on_update(dt)
+            if self.current_frame - self.last_powerup_bars_update > Audio.sample_rate / 2:
+                self.powerup_bars.on_update(dt + 0.5)
+                self.last_powerup_bars_update = self.current_frame
             removed_items = set()
 
             # UPDATE EACH POWERUP AND BLOCK, AND TRACK IF THEY ARE REMOVED OR NOT FROM THE GAME FRAME
