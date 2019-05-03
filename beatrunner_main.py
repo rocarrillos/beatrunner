@@ -36,9 +36,6 @@ class MainWidget(BaseWidget) :
             self.audio_manager.toggle()
             self.playing = not self.playing
 
-        if keycode[1] == 'z':
-            pass
-
         if keycode[1] == 't':
             self.game_data.transition()
             self.audio_manager.start_transition_song(self.game_data.audio_file_name)
@@ -51,11 +48,15 @@ class MainWidget(BaseWidget) :
         self.game_display.on_fall()
 
         if keycode[1] == 't':
-            self.song_data.read_data(*self.game_data.song_data_files, self.lifetime)  ## transition
-            self.game_display.transition(self.game_data.player_image, self.game_data.ground_image,
-                                         self.game_data.block_image)
-            self.game_display.change_blocks()
-            self.audio_manager.end_transition_song()
+            self.handle_transition()
+            
+            
+    def handle_transition(self):
+        self.song_data.read_data(*self.game_data.song_data_files, self.lifetime)  ## transition
+        self.game_display.transition(self.game_data.player_image, self.game_data.ground_image,
+                                        self.game_data.block_image)
+        self.game_display.change_blocks()
+        self.audio_manager.end_transition_song()
 
     def on_update(self) :
         self.label.text = "Level "+str(self.game_data.level + 1) + "\n"
@@ -95,7 +96,6 @@ class SongData(object):
         for line in blocklines:
             blockline = line.split()
             self.blocks.append((time + float(blockline[0]), int(blockline[2]), int(blockline[3])))
-        print(len(self.blocks))
         powerups = self.lines_from_file(poweruppath)
         for p in powerups:
             powerup = p.split()
