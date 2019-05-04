@@ -203,6 +203,9 @@ class AudioManager(object):
 
     def reset_speed(self):
         self.primary_speed_mod.set_speed(1)
+        
+    def add_transition_token(self):
+        pass
 
     def get_current_frame(self):
         return self.primary_song.frame

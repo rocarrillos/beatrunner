@@ -44,7 +44,8 @@ TEXTURES = {'vocals_boost': Image("img/mic.jpg").texture, 'bass_boost': Image("i
             "sample_on": Image("img/sample_on.png").texture, "sample_off": Image("img/sample_off.png").texture,
             "reset_sample":Image("img/sample_off.png").texture, "start_transition": Image("img/green_spiral.png").texture,
             "end_transition": Image("img/red_spiral.png").texture, "riser":Image("img/riser.png").texture,
-            "trophy": Image("img/trophy.png").texture, "danger": Image("img/skull.png").texture}
+            "trophy": Image("img/trophy.png").texture, "danger": Image("img/skull.png").texture,
+            "transition_token":Image("img/coin.png").texture}
 # Color constants
 BLACK = Color(0, 0, 0)
 WHITE = Color(1, 1, 1)
@@ -332,9 +333,9 @@ class ProgressBars(InstructionGroup):
     def __init__(self, text_label):
         super(ProgressBars, self).__init__()
         self.progress_bars = {}
-        self.bar_positions = [(3.7* SCREEN_WIDTH / 5, SCREEN_HEIGHT * 0.95), 
-                                (3.7 * SCREEN_WIDTH/5, SCREEN_HEIGHT*0.9), 
-                                (3.7*SCREEN_WIDTH/5, SCREEN_HEIGHT*0.85)]
+        self.bar_positions = [(3.85* SCREEN_WIDTH / 5, SCREEN_HEIGHT * 0.9),
+                                (3.85 * SCREEN_WIDTH/5, SCREEN_HEIGHT*0.85),
+                                (3.85*SCREEN_WIDTH/5, SCREEN_HEIGHT*0.8)]
         self.text_label = text_label
         self.primary_song = "Baby Shark"
 
@@ -435,6 +436,57 @@ class SoundProgressBar(InstructionGroup):
 
 
 ##
+# MAIN PROGRESS BAR OBJECT
+# This object is an individual bar that reflects the road map of the game and the collection
+# of transition tokens. 5 tokens to allow player to transition, and three levels
+class MainProgressBar(InstructionGroup):
+    def __init__(self):
+        super(MainProgressBar, self).__init__()
+        self.pos = np.array([int(SCREEN_WIDTH/3), int(0.9*SCREEN_HEIGHT)])
+        self.outside_color = WHITE
+        self.outside_rect = Rectangle(pos=self.pos, size=[SCREEN_WIDTH / 3, SCREEN_HEIGHT / 15 - 5])
+        self.inside_color = Color(1,1,0)  # will changing inside_color in glow_anim change global YELLOW?
+        self.inside_rect = Rectangle(pos=self.pos + np.array([2, 2]), size=[0, SCREEN_HEIGHT / 15 - 9])
+        self.max_length = SCREEN_WIDTH / 3 - 4
+
+        self.add(self.outside_color)
+        self.add(self.outside_rect)
+        self.add(self.inside_color)
+        self.add(self.inside_rect)
+        self.add(BLACK)
+        self.add(Line(points=[int(self.max_length/3)+int(SCREEN_WIDTH/3), int(0.9*SCREEN_HEIGHT),
+                              int(self.max_length/3)+int(SCREEN_WIDTH/3), int(0.9*SCREEN_HEIGHT)+SCREEN_HEIGHT / 15 - 5]))
+        self.add(Line(points=[int(2*self.max_length/3)+int(SCREEN_WIDTH/3), int(0.9*SCREEN_HEIGHT),
+                              int(2*self.max_length/3)+int(SCREEN_WIDTH/3), int(0.9*SCREEN_HEIGHT)+SCREEN_HEIGHT / 15 - 5]))
+
+        self.powerups_collected = 0
+        self.level = 0  # level - 1
+
+        self.glow = False
+        self.glow_anim = KFAnim((0,0),(0.3, 0.8),(0.6,0))
+        self.glow_dt = 0
+
+    def on_update(self, dt):
+        if self.glow:
+            b_value = self.glow_anim.eval(self.glow_dt % 0.6)
+            self.inside_color.b = b_value
+            self.glow_dt += dt
+        return True
+
+    def add_powerup(self):
+        if self.powerups_collected < 5:
+            self.powerups_collected += 1
+            self.inside_rect.size = [int(self.max_length * (self.level * 5 + self.powerups_collected)/15),SCREEN_HEIGHT / 15 - 9]
+        self.glow = self.powerups_collected >= 5
+
+    def add_level(self):
+        self.level += 1
+        self.glow_dt = 0
+        self.glow = False
+        self.inside_color.b = 0
+
+
+##
 # WRAPPER CLASS FOR THE GAME DISPLAY
 # args: song_data, powerup_data: annotations indicating where blocks and powerups should be, respectively.
 # song_data: [sec, measure, y_index, # units]
@@ -459,6 +511,8 @@ class GameDisplay(InstructionGroup):
 
         self.background = Background()
         self.add(self.background)
+        self.main_bar = MainProgressBar()
+        self.add(self.main_bar)
         self.player = Player(listen_collision_above_blocks=self.listen_collision_above_block,
                         listen_collision_ground=self.listen_collision_ground,
                              listen_collision_powerup=self.listen_collision_powerup,
@@ -496,12 +550,14 @@ class GameDisplay(InstructionGroup):
                                   'reset_sample':[self.audio_manager.reset_sample],
                                   'riser':[self.audio_manager.riser],
                                   "trophy": [self.audio_manager.toggle, self.toggle, self.win_game],
-                                  'danger': [self.audio_manager.toggle, self.toggle, self.lose_game]}
+                                  'danger': [self.audio_manager.toggle, self.toggle, self.lose_game],
+                                  'transition_token': [self.audio_manager.add_transition_token, self.main_bar.add_powerup]}
 
         self.game_speed = INIT_RIGHT_SPEED
         self.block_texture = "img/wave.png"
 
         # powerup progress bars
+
         self.powerup_bars = ProgressBars(label)
         self.powerup_bars.add_bar(self.audio_manager.primary_song, self.audio_manager.get_song_name())
         self.add(self.powerup_bars)
@@ -545,6 +601,7 @@ class GameDisplay(InstructionGroup):
     def on_update(self, dt):
         if not self.paused:
             self.player.on_update(dt)
+            self.main_bar.on_update(dt)
             if abs(self.current_frame - self.last_powerup_bars_update) > Audio.sample_rate / 2:
                 self.powerup_bars.on_update(dt + 0.5)
                 self.last_powerup_bars_update = self.current_frame
@@ -606,6 +663,8 @@ class GameDisplay(InstructionGroup):
         """
         y_pos = self.powerup_data[powerup][1]
         p_type = self.powerup_data[powerup][2]
+        if p_type == "transition" and self.main_bar.powerups_collected != 5:
+            return
         new_powerup = Powerup((SCREEN_WIDTH, self.index_to_y[y_pos-1] + GROUND_Y + BLOCK_HEIGHT), p_type, self.game_speed, self.powerup_listeners[p_type])
         self.powerups.add(new_powerup)
         self.add(new_powerup)
@@ -769,3 +828,4 @@ class GameDisplay(InstructionGroup):
         self.powerup_bars.remove_bar(self.powerup_bars.get_song_name())
         self.powerup_bars.add_bar(self.audio_manager.primary_song, self.audio_manager.get_song_name())
         self.powerup_bars.set_song_name(self.audio_manager.get_song_name())
+        self.main_bar.add_level()
