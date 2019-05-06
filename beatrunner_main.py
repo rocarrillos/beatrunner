@@ -12,11 +12,13 @@ class MainWidget(BaseWidget) :
         self.other_label = topright_label()
         self.game_data = GameData()
         self.audio_manager = AudioManager(self.game_data.audio_file_name)
-
+        self.screen = "menu"
         self.song_data = SongData()
         self.song_data.read_data(*self.game_data.song_data_files, 0)
         self.game_display = GameDisplay(self.song_data.blocks, self.song_data.powerups, self.audio_manager, self.other_label, self.handle_transition)
-        self.anim_group.add(self.game_display)
+        self.menu_display = MenuDisplay()
+        self.tutorial_display = TutorialDisplay()
+        self.anim_group.add(self.menu_display)
 
         self.playing = False
         self.lifetime = 0
@@ -44,6 +46,30 @@ class MainWidget(BaseWidget) :
             self.audio_manager.play_jump_effect()
             self.game_display.on_jump()
 
+        if keycode[1] == "m":
+            if self.screen == "game":
+                if not self.playing:
+                    self.anim_group.remove(self.game_display)
+                    self.anim_group.add(self.menu_display)
+                    self.screen = "menu"
+            if self.screen == "tutorial":
+                self.anim_group.remove(self.tutorial_display)
+                self.anim_group.add(self.menu_display)
+                self.screen = "menu"
+
+        if keycode[1] == "1":
+            if self.screen == "menu":
+                self.anim_group.remove(self.menu_display)
+                self.anim_group.add(self.game_display)
+                self.screen = "game"
+
+        if keycode[1] == "t":
+            if self.screen == "menu":
+                if not self.playing:
+                    self.anim_group.remove(self.menu_display)
+                    self.anim_group.add(self.tutorial_display)
+                    self.screen = "tutorial"
+
     def on_key_up(self, keycode):
         self.game_display.on_fall()
 
@@ -59,11 +85,19 @@ class MainWidget(BaseWidget) :
         self.audio_manager.end_transition_song()
 
     def on_update(self) :
-        self.label.text = "Level "+str(self.game_data.level + 1) + "\n"
-        # Welcome to Beat Runner\n[p] play/pause [w] jump [t hold] transition\n
-        self.label.text += "Score: " + str(self.audio_manager.score) + "\n"
-        if not self.playing:
-            self.label.text += "Press P to play"
+        if self.screen == "game":
+            self.label.text = "Level "+str(self.game_data.level + 1) + "\n"
+            # Welcome to Beat Runner\n[p] play/pause [w] jump [t hold] transition\n
+            self.label.text += "Score: " + str(self.audio_manager.score) + "\n"
+            if not self.playing:
+                self.label.text += "Press P to play"
+        if self.screen == "tutorial":
+            self.label.text = "Tutorial Mode\n"
+            self.label.text += "Press [m] to go back to the home screen"
+        if self.screen == "menu":
+            self.label.text = "Home Screen\n"
+            self.label.text += "Press [t] for the tutorial\n"
+            self.label.text += "Press [1] for Level 1"
         self.anim_group.on_update()
         self.audio_manager.on_update()
         self.game_display.update_frame(self.audio_manager.get_current_frame())

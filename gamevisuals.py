@@ -503,6 +503,111 @@ class MainProgressBar(InstructionGroup):
         self.inside_color.b = 0
 
 
+
+class MenuDisplay(InstructionGroup):
+    def __init__(self):
+        super(MenuDisplay, self).__init__()
+        self.color = Color(0.5, 0.5, 0.5)
+        self.add(self.color)
+        self.bg = Rectangle(pos=(0, 0), size=[SCREEN_WIDTH, SCREEN_HEIGHT])
+        self.add(self.bg)
+
+    def on_update(self, dt):
+        return True
+
+
+class TutorialDisplay(InstructionGroup):
+    def __init__(self):
+        super(TutorialDisplay, self).__init__()
+        self.color = GREEN
+        self.add(self.color)
+        self.bg = Rectangle(pos=(0, 0), size=[SCREEN_WIDTH, SCREEN_HEIGHT])
+        self.add(self.bg)
+        
+        self.player = Player(listen_collision_above_blocks=self.listen_collision_above_block,
+                        listen_collision_ground=self.listen_collision_ground,
+                             listen_collision_powerup=self.listen_collision_powerup,
+                             listen_collision_below_blocks=self.listen_collision_below_block)
+        self.add(self.player)
+
+    def on_update(self, dt):
+        return True
+
+    def listen_collision_below_block(self, player):
+        """
+        Listener for collision between rising player and blocks.
+        Arguments:
+            player (Player): player instance to handle collisions for
+        """
+        for block in self.blocks:
+            block_x = block.get_pos()[0]
+            block_y = block.get_pos()[1]
+            player_x = player.get_pos()[0]
+            player_y = player.get_pos()[1]
+
+            if block_x < player_x < block_x + block.get_size()[0] or \
+                    block_x < player_x + PLAYER_WIDTH < block_x + block.get_size()[0]:
+                if block_y < player_y <= block_y + BLOCK_HEIGHT:
+                    # case 1: fall onto a new block
+                    player.set_y(block_y + BLOCK_HEIGHT)
+                    return True
+        return False
+
+    def listen_collision_above_block(self, player):
+        """
+        Listener for collision between falling player and blocks.
+        Arguments:
+            player (Player): player instance to handle collisions for
+        """
+        for block in self.blocks:
+            block_x = block.get_pos()[0]
+            block_y = block.get_pos()[1]
+            player_x = player.get_pos()[0]
+            player_y = player.get_pos()[1]
+
+            if block_x < player_x < block_x + block.get_size()[0] or \
+                    block_x < player_x + PLAYER_WIDTH < block_x + block.get_size()[0]:
+                if block_y < player_y + PLAYER_HEIGHT < block_y + BLOCK_HEIGHT:
+                # case 2: top of player collides with bottom of a block
+                    return True
+        return False
+
+    def listen_collision_ground(self, player):
+        """
+        Listener for collision between player and ground.
+        Arguments:
+            player (Player): player instance to handle collisions for
+        """
+        if player.get_pos()[1] < GROUND_Y:
+            player.set_y(GROUND_Y)
+            return True
+        return False
+
+    # listener for player with powerups objects
+    def listen_collision_powerup(self, player):
+        """
+        Listener for collision between player and powerups.
+        Arguments:
+            player (Player): player instance to handle collisions for
+        """
+        for powerup in self.powerups:
+            powerup_x = powerup.get_pos()[0]
+            powerup_y = powerup.get_pos()[1]
+            player_x = player.get_pos()[0]
+            player_y = player.get_pos()[1]
+
+            if powerup_x < player_x < powerup_x + POWERUP_LENGTH or \
+                    powerup_x < player_x + PLAYER_WIDTH < powerup_x + POWERUP_LENGTH:
+                if player_y < powerup_y < player_y + PLAYER_HEIGHT or \
+                        player_y < powerup_y + POWERUP_LENGTH < player_y + PLAYER_HEIGHT:
+                    if powerup.powerup_type == "sample_on" or powerup.powerup_type == "sample_off":
+                        powerup.activate([[self.current_frame]])
+                    elif powerup.powerup_type == "riser":
+                        powerup.activate([[self.powerup_bars.add_bar]])
+                    else:
+                        powerup.activate()
+                    return powerup
+        return None
 ##
 # WRAPPER CLASS FOR THE GAME DISPLAY
 # args: song_data, powerup_data: annotations indicating where blocks and powerups should be, respectively.
