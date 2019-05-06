@@ -578,7 +578,6 @@ class GameDisplay(InstructionGroup):
         # powerup progress bars
 
         self.powerup_bars = ProgressBars(label)
-        self.powerup_bars.add_bar(self.audio_manager.primary_song, self.audio_manager.get_song_name())
         self.add(self.powerup_bars)
         self.last_powerup_bars_update = 0
 
@@ -845,7 +844,4 @@ class GameDisplay(InstructionGroup):
         self.block_texture = block_texture
         self.change_blocks()
         self.reset_game_speed()
-        self.powerup_bars.remove_bar(self.powerup_bars.get_song_name())
-        self.powerup_bars.add_bar(self.audio_manager.primary_song, self.audio_manager.get_song_name())
-        self.powerup_bars.set_song_name(self.audio_manager.get_song_name())
         self.main_bar.add_level()
