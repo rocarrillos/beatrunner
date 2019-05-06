@@ -45,7 +45,7 @@ TEXTURES = {'vocals_boost': Image("img/mic.jpg").texture, 'bass_boost': Image("i
             "reset_sample":Image("img/sample_off.png").texture, "start_transition": Image("img/green_spiral.png").texture,
             "end_transition": Image("img/red_spiral.png").texture, "riser":Image("img/riser.png").texture,
             "trophy": Image("img/trophy.png").texture, "danger": Image("img/skull.png").texture,
-            "transition_token":Image("img/coin.png").texture}
+            "transition_token":Image("img/coin.png").texture, "transition":Image("img/transition_final.png").texture}
 # Color constants
 BLACK = Color(0, 0, 0)
 WHITE = Color(1, 1, 1)
@@ -77,7 +77,8 @@ class Player(InstructionGroup):
         super(Player, self).__init__()
         self.pos = (PLAYER_X-PLAYER_WIDTH, GROUND_Y)
         self.texture = Image('img/shark.png').texture
-        self.add(WHITE)
+        self.glow_color = Color(1,1,1)
+        self.add(self.glow_color)
         self.rect = Rectangle(pos=self.pos, size=(PLAYER_WIDTH, PLAYER_HEIGHT), texture=self.texture)
         self.add(self.rect)
 
@@ -92,6 +93,10 @@ class Player(InstructionGroup):
         self.listen_collision_below_blocks = listen_collision_below_blocks
         self.listen_collision_ground = listen_collision_ground
         self.listen_collision_powerup = listen_collision_powerup
+
+        self.glow = False
+        self.glow_anim = KFAnim((0, 1), (0.3, 0.5), (0.6, 1))
+        self.glow_dt = 0
 
     def get_pos(self):
         """
@@ -127,7 +132,17 @@ class Player(InstructionGroup):
         self.jump_anim = None
         self.fall_on = True
 
+    def toggle_glow(self, glow):
+        self.glow = glow
+        if not self.glow:
+            self.glow_color.b = 1
+
     def on_update(self, dt):
+        if self.glow:
+            b_value = self.glow_anim.eval(self.glow_dt % 0.6)
+            self.glow_color.b = b_value
+            self.glow_dt += dt
+
         if self.jump_anim:
             self.rect.pos = self.rect.pos[0], self.jump_anim.eval(self.dt)
             self.dt += dt
@@ -440,7 +455,7 @@ class SoundProgressBar(InstructionGroup):
 # This object is an individual bar that reflects the road map of the game and the collection
 # of transition tokens. 5 tokens to allow player to transition, and three levels
 class MainProgressBar(InstructionGroup):
-    def __init__(self):
+    def __init__(self, trigger_glow_listener=None):
         super(MainProgressBar, self).__init__()
         self.pos = np.array([int(SCREEN_WIDTH/3), int(0.9*SCREEN_HEIGHT)])
         self.outside_color = WHITE
@@ -465,6 +480,7 @@ class MainProgressBar(InstructionGroup):
         self.glow = False
         self.glow_anim = KFAnim((0,0),(0.3, 0.8),(0.6,0))
         self.glow_dt = 0
+        self.trigger_glow_listener=trigger_glow_listener
 
     def on_update(self, dt):
         if self.glow:
@@ -478,6 +494,7 @@ class MainProgressBar(InstructionGroup):
             self.powerups_collected += 1
             self.inside_rect.size = [int(self.max_length * (self.level * 5 + self.powerups_collected)/15),SCREEN_HEIGHT / 15 - 9]
         self.glow = self.powerups_collected >= 5
+        if self.trigger_glow_listener: self.trigger_glow_listener(self.glow)
 
     def add_level(self):
         self.level += 1
@@ -493,7 +510,7 @@ class MainProgressBar(InstructionGroup):
 # powerup_data: [sec, measure, powerup_str]
 # this class contains the PLAYER object, GROUND object, and all POWERUPS AND BLOCKS on screen
 class GameDisplay(InstructionGroup):
-    def __init__(self, block_data, powerup_data, audio_manager, label):
+    def __init__(self, block_data, powerup_data, audio_manager, label, data_audio_transition_listener):
         """
         Object handling all of the visual elements of a game instance.
         Arguments:
@@ -511,12 +528,12 @@ class GameDisplay(InstructionGroup):
 
         self.background = Background()
         self.add(self.background)
-        self.main_bar = MainProgressBar()
-        self.add(self.main_bar)
         self.player = Player(listen_collision_above_blocks=self.listen_collision_above_block,
                         listen_collision_ground=self.listen_collision_ground,
                              listen_collision_powerup=self.listen_collision_powerup,
                              listen_collision_below_blocks=self.listen_collision_below_block)
+        self.main_bar = MainProgressBar(self.player.toggle_glow)
+        self.add(self.main_bar)
 
         self.add(self.player)
         self.ground = Ground()
@@ -533,6 +550,7 @@ class GameDisplay(InstructionGroup):
         self.over = False
 
         self.index_to_y = [0, int(SCREEN_HEIGHT/5), int(SCREEN_HEIGHT * 2/5), int(SCREEN_HEIGHT*3/5)]
+        self.data_audio_transition_listener = data_audio_transition_listener
 
         self.powerup_listeners = {'powerup_note': [self.audio_manager.play_powerup_effect],
                                   'lower_volume': [self.audio_manager.lower_volume],
@@ -551,7 +569,8 @@ class GameDisplay(InstructionGroup):
                                   'riser':[self.audio_manager.riser],
                                   "trophy": [self.audio_manager.toggle, self.toggle, self.win_game],
                                   'danger': [self.audio_manager.toggle, self.toggle, self.lose_game],
-                                  'transition_token': [self.audio_manager.add_transition_token, self.main_bar.add_powerup]}
+                                  'transition_token': [self.audio_manager.add_transition_token, self.main_bar.add_powerup],
+                                  "transition": [self.data_audio_transition_listener]}
 
         self.game_speed = INIT_RIGHT_SPEED
         self.block_texture = "img/wave.png"
@@ -811,7 +830,7 @@ class GameDisplay(InstructionGroup):
         for powerup in self.powerups:
             powerup.change_speed(self.game_speed)
 
-    def transition(self, player_texture, ground_texture, block_texture):
+    def graphics_transition(self, player_texture, ground_texture, block_texture):
         """
         Handler for song-to-song transitions.
         Updates player object, resets song progress bar, and resets game speed.
@@ -824,6 +843,7 @@ class GameDisplay(InstructionGroup):
         self.ground.set_texture(ground_texture)
         self.background.change()
         self.block_texture = block_texture
+        self.change_blocks()
         self.reset_game_speed()
         self.powerup_bars.remove_bar(self.powerup_bars.get_song_name())
         self.powerup_bars.add_bar(self.audio_manager.primary_song, self.audio_manager.get_song_name())

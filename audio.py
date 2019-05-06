@@ -214,8 +214,9 @@ class AudioManager(object):
     def get_transition_score(self):
         score = 0
         if self.transition_score_dict["riser"]:
-            riser_score = 220500 - (self.get_current_frame() - self.transition_score_dict["riser"])
-            score += abs(int(riser_score / 2205) if riser_score > -220500 else 0)
+            riser_frames = 8.34 * Audio.sample_rate
+            riser_score = riser_frames - (self.get_current_frame() - self.transition_score_dict["riser"])
+            score += abs(int(riser_score *100 / riser_frames) if riser_score > -1 * riser_frames else 0)
         if self.sampler or (self.transition_score_dict["sample"] and self.transition_score_dict["sample"] - 2 * self.sample_off_frame < -1 * self.sample_on_frame):
             sampler_score = int(100 * self.sample_on_frame/self.sample_off_frame)
             score += sampler_score

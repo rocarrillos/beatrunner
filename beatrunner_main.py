@@ -15,7 +15,7 @@ class MainWidget(BaseWidget) :
 
         self.song_data = SongData()
         self.song_data.read_data(*self.game_data.song_data_files, 0)
-        self.game_display = GameDisplay(self.song_data.blocks, self.song_data.powerups, self.audio_manager, self.other_label)
+        self.game_display = GameDisplay(self.song_data.blocks, self.song_data.powerups, self.audio_manager, self.other_label, self.handle_transition)
         self.anim_group.add(self.game_display)
 
         self.playing = False
@@ -36,9 +36,9 @@ class MainWidget(BaseWidget) :
             self.audio_manager.toggle()
             self.playing = not self.playing
 
-        if keycode[1] == 't':
-            self.game_data.transition()
-            self.audio_manager.start_transition_song(self.game_data.audio_file_name)
+        # if keycode[1] == 't':
+        #     self.game_data.transition()
+        #     self.audio_manager.start_transition_song(self.game_data.audio_file_name)
 
         if keycode[1] == 'w':
             self.audio_manager.play_jump_effect()
@@ -47,15 +47,15 @@ class MainWidget(BaseWidget) :
     def on_key_up(self, keycode):
         self.game_display.on_fall()
 
-        if keycode[1] == 't':
-            self.handle_transition()
-            
+        # if keycode[1] == 't':
+        #     self.handle_transition()
             
     def handle_transition(self):
+        self.game_data.transition()
+        self.audio_manager.start_transition_song(self.game_data.audio_file_name)
         self.song_data.read_data(*self.game_data.song_data_files, self.lifetime)  ## transition
-        self.game_display.transition(self.game_data.player_image, self.game_data.ground_image,
+        self.game_display.graphics_transition(self.game_data.player_image, self.game_data.ground_image,
                                         self.game_data.block_image)
-        self.game_display.change_blocks()
         self.audio_manager.end_transition_song()
 
     def on_update(self) :
