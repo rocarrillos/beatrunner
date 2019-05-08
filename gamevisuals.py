@@ -967,4 +967,4 @@ class GameDisplay(InstructionGroup):
         self.change_blocks()
         self.reset_game_speed()
         self.main_bar.add_level()
-        self.main_bar.reset_song_frame(self.audio_manager.primary_song.frame, self.audio_manager.primary_song.get_length())
+        self.main_bar.reset_song_frame(self.audio_manager.primary_song.get_frame(), self.audio_manager.primary_song.get_length())
