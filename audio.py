@@ -176,6 +176,9 @@ class AudioManager(object):
     def get_current_frame(self):
         return self.primary_song.get_frame()
 
+    def get_current_length(self):
+        return self.primary_song.get_length()
+
     # calc the transition score based off of risers/samplers (and other effects in the future)
     def get_transition_score(self):
         score = 0

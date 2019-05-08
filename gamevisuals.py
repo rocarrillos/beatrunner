@@ -629,6 +629,7 @@ class TutorialDisplay(InstructionGroup):
 # args: song_data, powerup_data: annotations indicating where blocks and powerups should be, respectively.
 # song_data: [sec, measure, y_index, # units]
 # powerup_data: [sec, measure, powerup_str]
+# data_audio_transition_listener - activates a listener function in beatrunner_main, which activates transition in other classes
 # this class contains the PLAYER object, GROUND object, and all POWERUPS AND BLOCKS on screen
 class GameDisplay(InstructionGroup):
     def __init__(self, block_data, powerup_data, audio_manager, label, data_audio_transition_listener):
@@ -644,35 +645,31 @@ class GameDisplay(InstructionGroup):
         self.block_data = block_data
         self.powerup_data = powerup_data
         self.audio_manager = audio_manager
-        self.color = Color(1,1,1)
-        self.add(self.color)
+        self.data_audio_transition_listener = data_audio_transition_listener
+
+        self.bg_color = Color(1,1,1)
+        self.add(self.bg_color)
 
         self.background = Background()
-        self.add(self.background)
         self.player = Player(listen_collision_above_blocks=self.listen_collision_above_block,
                         listen_collision_ground=self.listen_collision_ground,
                              listen_collision_powerup=self.listen_collision_powerup,
                              listen_collision_below_blocks=self.listen_collision_below_block)
-        self.main_bar = MainProgressBar(self.audio_manager.primary_song.get_length(), self.player.toggle_glow)
-        self.add(self.main_bar)
-
-        self.add(self.player)
+        self.main_bar = MainProgressBar(self.audio_manager.get_current_length(), self.player.toggle_glow)
         self.ground = Ground()
+   
+        self.add(self.background)
+        self.add(self.main_bar)
+        self.add(self.player)
         self.add(self.ground)        
 
-        self.current_frame = 0
+        self.current_frame = 0  # current frame in song
         self.current_block = 0  # current block ind to add from song_data
         self.current_powerup = 0  # current powerup ind to add from powerup_data
 
         self.blocks = set()  # on-screen blocks
         self.powerups = set()  # on-screen powerups
-
-        self.paused = True
-        self.over = False
-
-        self.index_to_y = [0, int(SCREEN_HEIGHT/5), int(SCREEN_HEIGHT * 2/5), int(SCREEN_HEIGHT*3/5)]
-        self.data_audio_transition_listener = data_audio_transition_listener
-
+        self.index_to_y = [0, int(SCREEN_HEIGHT/5), int(SCREEN_HEIGHT * 2/5), int(SCREEN_HEIGHT*3/5)]  # maps block/powerup indices to y coords
         self.powerup_listeners = {'powerup_note': [self.audio_manager.play_powerup_effect],
                                   'lower_volume': [self.audio_manager.lower_volume],
                                   'raise_volume': [self.audio_manager.raise_volume],
@@ -693,11 +690,13 @@ class GameDisplay(InstructionGroup):
                                   'transition_token': [self.audio_manager.add_transition_token, self.main_bar.add_powerup],
                                   "transition": [self.data_audio_transition_listener]}
 
+        # game states
+        self.paused = True
+        self.over = False
         self.game_speed = INIT_RIGHT_SPEED
         self.block_texture = "img/wave.png"
 
-        # powerup progress bars
-
+        # powerup progress bars (righthand side)
         self.powerup_bars = ProgressBars(label)
         self.add(self.powerup_bars)
         self.last_powerup_bars_update = 0
@@ -745,6 +744,7 @@ class GameDisplay(InstructionGroup):
                 self.powerup_bars.on_update(dt + 0.5)
                 self.last_powerup_bars_update = self.current_frame
                 self.main_bar.on_progress_bar_update(dt + 0.5)
+
             removed_items = set()
 
             # UPDATE EACH POWERUP AND BLOCK, AND TRACK IF THEY ARE REMOVED OR NOT FROM THE GAME FRAME
@@ -967,4 +967,4 @@ class GameDisplay(InstructionGroup):
         self.change_blocks()
         self.reset_game_speed()
         self.main_bar.add_level()
-        self.main_bar.reset_song_frame(self.audio_manager.primary_song.get_frame(), self.audio_manager.primary_song.get_length())
+        self.main_bar.reset_song_frame(self.audio_manager.get_current_frame(), self.audio_manager.get_current_length())
