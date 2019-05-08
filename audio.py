@@ -36,6 +36,10 @@ class AudioManager(object):
         self.secondary_speed_mod = None
         self.primary_filter = Filter(self.primary_speed_mod)
         self.secondary_filter = None
+
+        self.primary_gain = self.primary_speed_mod.get_gain()
+        self.secondary_gain = 0
+
         self.idx = 0
         self.songs = ["Baby Shark", "Closer", "Mi Gente"]
 
@@ -167,7 +171,8 @@ class AudioManager(object):
             sample = WaveGenerator(WaveBuffer(self.primary_audiofile, self.sample_on_frame,frame - self.sample_on_frame), loop=True)
             self.sampler = SpeedModulator(sample, speed=self.primary_speed_mod.speed)
             self.mixer.add(self.sampler)
-            sample.set_gain(self.primary_song.get_gain())
+            self.primary_gain = self.primary_speed_mod.get_gain()
+            sample.set_gain(self.primary_gain)
             self.primary_song.set_gain(0)
 
     # start the song transition. Here, init the new song as a WaveGenerator and add it to the mixer.
@@ -176,9 +181,19 @@ class AudioManager(object):
         self.secondary_audiofile = audio_file
         self.secondary_speed_mod = SpeedModulator(self.secondary_song)
         self.secondary_filter = Filter(self.secondary_speed_mod)
-        self.secondary_song.set_gain(0.25)
+        self.secondary_song.set_gain(0)
         self.mixer.add(self.secondary_filter)
         self.idx += 1
+
+    def increase_secondary_gain(self):
+        self.secondary_song.set_gain(self.secondary_song.get_gain()+0.002)
+        return self.secondary_song.get_gain()
+
+    def decrease_primary_gain(self):
+        self.primary_gain = self.primary_gain-0.002
+        if self.sampler: self.sampler.set_gain(self.primary_gain)
+        else: self.primary_song.set_gain(self.primary_gain)
+        return self.primary_gain
 
     # end the song transition by putting all the secondary song refs as the primary song refs.
     # remove the primary song from the mixer.
@@ -190,16 +205,19 @@ class AudioManager(object):
         self.primary_audiofile = self.secondary_audiofile
         self.primary_speed_mod = self.secondary_speed_mod
         self.primary_filter = self.secondary_filter
+        self.primary_gain = self.primary_speed_mod.get_gain()
         self.secondary_song, self.secondary_speed_mod, self.secondary_filter = None, None, None
         self.secondary_audiofile = ""
+        print(self.primary_song)
         if self.sampler: self.reset_sample()
 
     # reset the sampling and reinstate the normal playing song
     def reset_sample(self):
-        self.mixer.remove(self.sampler)
-        self.sampler = None
-        self.primary_song.set_gain(0.5)
-        self.sample_on_frame = 0
+        if self.sampler:
+            self.mixer.remove(self.sampler)
+            self.sampler = None
+            self.primary_song.set_gain(self.primary_gain)
+            self.sample_on_frame = 0
 
     def reset_speed(self):
         self.primary_speed_mod.set_speed(1)
@@ -240,6 +258,12 @@ class SpeedModulator(object):
 
     def get_speed(self):
         return self.speed
+
+    def get_gain(self):
+        return self.generator.gain
+
+    def set_gain(self, gain):
+        self.generator.set_gain(gain)
 
     def release(self):
         self.continue_flag = False

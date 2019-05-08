@@ -460,14 +460,14 @@ class MainProgressBar(InstructionGroup):
         self.pos = np.array([int(SCREEN_WIDTH/3), int(0.9*SCREEN_HEIGHT)])
         self.outside_color = WHITE
         self.outside_rect = Rectangle(pos=self.pos, size=[SCREEN_WIDTH / 3, SCREEN_HEIGHT / 15 - 5])
-        self.inside_color = Color(1,1,0)  # will changing inside_color in glow_anim change global YELLOW?
-        self.inside_rect = Rectangle(pos=self.pos + np.array([2, 2]), size=[0, SCREEN_HEIGHT / 15 - 9])
+        self.inside_colors = [Color(1,1,0)] # will changing inside_color in glow_anim change global YELLOW?
+        self.inside_rects = [Rectangle(pos=self.pos + np.array([2, 2]), size=[0, SCREEN_HEIGHT / 15 - 9])]
         self.max_length = SCREEN_WIDTH / 3 - 4
 
         self.add(self.outside_color)
         self.add(self.outside_rect)
-        self.add(self.inside_color)
-        self.add(self.inside_rect)
+        self.add(self.inside_colors[0])
+        self.add(self.inside_rects[0])
         self.add(BLACK)
         self.add(Line(points=[int(self.max_length/3)+int(SCREEN_WIDTH/3), int(0.9*SCREEN_HEIGHT),
                               int(self.max_length/3)+int(SCREEN_WIDTH/3), int(0.9*SCREEN_HEIGHT)+SCREEN_HEIGHT / 15 - 5]))
@@ -489,10 +489,13 @@ class MainProgressBar(InstructionGroup):
         self.glow_dt = 0
         self.trigger_glow_listener=trigger_glow_listener
 
+        self.max_primary_gain, self.max_secondary_gain = 0,0
+        self.crossfade_on = False
+
     def on_glow_update(self, dt):
         if self.glow:
             b_value = self.glow_anim.eval(self.glow_dt % 0.6)
-            self.inside_color.b = b_value
+            self.inside_colors[-1].b = b_value
             self.glow_dt += dt
         return True
 
@@ -504,20 +507,39 @@ class MainProgressBar(InstructionGroup):
     def add_powerup(self):
         if self.powerups_collected < 5:
             self.powerups_collected += 1
-            self.inside_rect.size = [int(self.max_length * (self.level * 5 + self.powerups_collected)/15),SCREEN_HEIGHT / 15 - 9]
-        self.glow = self.powerups_collected >= 5
+            self.inside_rects[-1].size = [int(self.max_length * (self.powerups_collected)/15),SCREEN_HEIGHT / 15 - 9]
+        self.glow = self.powerups_collected >= 5 and not self.crossfade_on
         if self.trigger_glow_listener: self.trigger_glow_listener(self.glow)
 
     def add_level(self):
         self.level += 1
         self.glow_dt = 0
-        self.glow = False
-        self.inside_color.b = 0
-
+        self.crossfade_on = False
+        self.inside_colors[-2], self.inside_colors[-1] = Color(1,1,0), Color(1,1,0)
+        self.powerups_collected = 0
+        self.inside_rects[-1].size = [0, SCREEN_HEIGHT / 15 - 9]
+        
     def reset_song_frame(self, next_song_frame, next_song_length):
         self.song_frame = next_song_frame
         self.song_length = next_song_length
 
+    def transition_color(self, max_primary_gain, max_secondary_gain=0.75):
+        self.glow = False
+        self.crossfade_on = True
+        self.inside_rects.append(Rectangle(pos=self.pos + np.array([2 + (1+self.level) * int(self.max_length /3), 2]), size=[int(self.max_length /3), SCREEN_HEIGHT / 15 - 9]))
+        self.inside_colors.append(Color(1,1,1))
+        self.add(self.inside_colors[-1])
+        self.add(self.inside_rects[-1])
+        self.inside_colors[-2].r, self.inside_colors[-2].g, self.inside_colors[-2].b = 0,0.4,1
+        self.progress_color = Color(0,0.4,1)
+        self.max_primary_gain = max_primary_gain
+        self.max_secondary_gain = max_secondary_gain
+
+    def set_secondary_gain(self, percentage):
+        self.inside_colors[-1].r,self.inside_colors[-1].g = 1-percentage,1-percentage * 0.6
+
+    def set_primary_gain(self, percentage):
+        self.inside_colors[-2].r, self.inside_colors[-2].g = 1-percentage, 1.4-0.4* percentage
 
 
 class MenuDisplay(InstructionGroup):
@@ -702,6 +724,10 @@ class GameDisplay(InstructionGroup):
         self.add(self.powerup_bars)
         self.last_powerup_bars_update = 0
 
+        self.max_primary_gain = 0
+        self.max_secondary_gain = 0
+        self.crossfade_on = False
+
     # toggle paused of game or not
     def toggle(self):
         """
@@ -768,7 +794,6 @@ class GameDisplay(InstructionGroup):
             # COMPARE ANNOTATION NOTES TO CURRENT FRAME AND ADD NEW OBJECTS ACCORDINGLY
             block_valid = self.current_block < len(self.block_data)
             block_onscreen = block_valid and self.current_frame / Audio.sample_rate > self.block_data[self.current_block][0] - SECONDS_FROM_RIGHT_TO_PLAYER
-            
             if block_onscreen:
                 self.add_block(self.current_block)
                 self.current_block += 1
@@ -950,6 +975,11 @@ class GameDisplay(InstructionGroup):
             block.change_speed(self.game_speed)
         for powerup in self.powerups:
             powerup.change_speed(self.game_speed)
+
+    def set_transition_mode(self, max_primary_gain, max_secondary_gain):
+        self.max_primary_gain, self.max_secondary_gain = max_primary_gain, max_secondary_gain
+        self.main_bar.transition_color(max_primary_gain, max_secondary_gain)
+        self.crossfade_on = True
 
     def graphics_transition(self, player_texture, ground_texture, block_texture):
         """

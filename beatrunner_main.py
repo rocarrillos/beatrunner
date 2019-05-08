@@ -24,6 +24,9 @@ class MainWidget(BaseWidget) :
         self.lifetime = 0
         self.prev_time = time.time()
         self.new_time = time.time()
+        self.transition_on = False
+        self.secondary_on = False
+        self.primary_on = False
 
         self.canvas.add(self.anim_group)
 
@@ -38,9 +41,21 @@ class MainWidget(BaseWidget) :
             self.audio_manager.toggle()
             self.playing = not self.playing
 
-        # if keycode[1] == 't':
-        #     self.game_data.transition()
-        #     self.audio_manager.start_transition_song(self.game_data.audio_file_name)
+        if keycode[1] == 'a':
+            if self.transition_on:
+                self.primary_on = True
+
+        if keycode[1] == 's':
+            if not self.transition_on:
+                self.transition_on = True
+                self.game_data.transition()
+                self.audio_manager.start_transition_song(self.game_data.audio_file_name)
+                self.game_display.set_transition_mode(self.audio_manager.primary_song.get_gain(), 0.75)  # max gain for each primary and secondary
+
+
+        if keycode[1] == 'd':
+            if self.transition_on:
+                self.secondary_on = True
 
         if keycode[1] == 'w':
             self.audio_manager.play_jump_effect()
@@ -73,16 +88,19 @@ class MainWidget(BaseWidget) :
     def on_key_up(self, keycode):
         self.game_display.on_fall()
 
-        # if keycode[1] == 't':
-        #     self.handle_transition()
+        if keycode[1] == 'd':
+            self.secondary_on = False
+        elif keycode[1] == 'a':
+            self.primary_on = False
             
     def handle_transition(self):
-        self.game_data.transition()
-        self.audio_manager.start_transition_song(self.game_data.audio_file_name)
+        #self.game_data.transition()
+        #self.audio_manager.start_transition_song(self.game_data.audio_file_name)
         self.song_data.read_data(*self.game_data.song_data_files, self.lifetime)  ## transition
         self.audio_manager.end_transition_song()
         self.game_display.graphics_transition(self.game_data.player_image, self.game_data.ground_image,
                                         self.game_data.block_image)
+        self.secondary_on, self.primary_on, self.transition_on = False, False, False
 
     def on_update(self) :
         if self.screen == "game":
@@ -105,6 +123,18 @@ class MainWidget(BaseWidget) :
             self.prev_time = self.new_time
             self.new_time = time.time()
             self.lifetime += self.new_time - self.prev_time
+
+        if self.primary_on:
+            new_gain = self.audio_manager.decrease_primary_gain()
+            self.game_display.main_bar.set_primary_gain(self.audio_manager.primary_gain)
+            if new_gain <= 0:
+                self.handle_transition()
+                return
+
+        if self.secondary_on:
+            if self.audio_manager.secondary_song.get_gain() <=0.75:
+                new_gain = self.audio_manager.increase_secondary_gain()
+                self.game_display.main_bar.set_secondary_gain(self.audio_manager.secondary_song.get_gain())
 
 
 # holds data for blocks and powerups.
