@@ -51,9 +51,9 @@ class AudioManager(object):
 
         # effects programming
         self.sfx.program(0, 0, 116) # taiko drum
-        self.sfx.program(1, 0, 98) # crystal
+        self.sfx.program(1, 0, 98)  # crystal
         self.sfx.program(2, 0, 121) # breath noise
-        self.sfx.program(3, 0, 114)  # soundtrack
+        self.sfx.program(3, 0, 114) # soundtrack
         self.sfx.program(4, 0, 126) # applause
 
         # hook everything up
