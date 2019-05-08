@@ -30,12 +30,16 @@ class AudioManager(object):
         # setup audio files
         self.primary_audiofile = audiofile
         self.primary_song = WaveGenerator(WaveFile(self.primary_audiofile))
+        self.primary_speed_mod = SpeedModulator(self.primary_song)
+        self.primary_filter = Filter(self.primary_speed_mod)
+        self.primary_gain = self.primary_speed_mod.get_gain()
+
         self.secondary_audiofile = ""
         self.secondary_song = None
-        self.primary_speed_mod = SpeedModulator(self.primary_song)
         self.secondary_speed_mod = None
-        self.primary_filter = Filter(self.primary_speed_mod)
         self.secondary_filter = None
+        self.secondary_gain = 0
+
         self.idx = 0
         self.songs = ["Baby Shark", "Closer", "Mi Gente"]
 
