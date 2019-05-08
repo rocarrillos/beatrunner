@@ -80,9 +80,9 @@ class MainWidget(BaseWidget) :
         self.game_data.transition()
         self.audio_manager.start_transition_song(self.game_data.audio_file_name)
         self.song_data.read_data(*self.game_data.song_data_files, self.lifetime)  ## transition
+        self.audio_manager.end_transition_song()
         self.game_display.graphics_transition(self.game_data.player_image, self.game_data.ground_image,
                                         self.game_data.block_image)
-        self.audio_manager.end_transition_song()
 
     def on_update(self) :
         if self.screen == "game":

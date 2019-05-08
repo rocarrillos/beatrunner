@@ -455,7 +455,7 @@ class SoundProgressBar(InstructionGroup):
 # This object is an individual bar that reflects the road map of the game and the collection
 # of transition tokens. 5 tokens to allow player to transition, and three levels
 class MainProgressBar(InstructionGroup):
-    def __init__(self, trigger_glow_listener=None):
+    def __init__(self, song_length, trigger_glow_listener=None):
         super(MainProgressBar, self).__init__()
         self.pos = np.array([int(SCREEN_WIDTH/3), int(0.9*SCREEN_HEIGHT)])
         self.outside_color = WHITE
@@ -474,21 +474,33 @@ class MainProgressBar(InstructionGroup):
         self.add(Line(points=[int(2*self.max_length/3)+int(SCREEN_WIDTH/3), int(0.9*SCREEN_HEIGHT),
                               int(2*self.max_length/3)+int(SCREEN_WIDTH/3), int(0.9*SCREEN_HEIGHT)+SCREEN_HEIGHT / 15 - 5]))
 
+        self.current_song_progress_line = Line(points=[int(SCREEN_WIDTH/3)+2, int(0.9*SCREEN_HEIGHT)-3,int(SCREEN_WIDTH/3)+5, int(0.9*SCREEN_HEIGHT)-3], width=3)
+        self.progress_color = Color(0,1,0)
+        self.add(self.progress_color)
+        self.add(self.current_song_progress_line)
+
         self.powerups_collected = 0
         self.level = 0  # level - 1
+        self.song_length = song_length
+        self.song_frame = 0
 
         self.glow = False
         self.glow_anim = KFAnim((0,0),(0.3, 0.8),(0.6,0))
         self.glow_dt = 0
         self.trigger_glow_listener=trigger_glow_listener
 
-    def on_update(self, dt):
+    def on_glow_update(self, dt):
         if self.glow:
             b_value = self.glow_anim.eval(self.glow_dt % 0.6)
             self.inside_color.b = b_value
             self.glow_dt += dt
         return True
 
+    def on_progress_bar_update(self, dt):
+        self.song_frame += int(dt * Audio.sample_rate)
+        new_line_length = int((self.song_frame / self.song_length) * self.max_length)
+        self.current_song_progress_line.points = self.current_song_progress_line.points[:2]+[int(SCREEN_WIDTH/3) + new_line_length, self.current_song_progress_line.points[3]]
+    
     def add_powerup(self):
         if self.powerups_collected < 5:
             self.powerups_collected += 1
@@ -501,6 +513,10 @@ class MainProgressBar(InstructionGroup):
         self.glow_dt = 0
         self.glow = False
         self.inside_color.b = 0
+
+    def reset_song_frame(self, next_song_frame, next_song_length):
+        self.song_frame = next_song_frame
+        self.song_length = next_song_length
 
 
 
@@ -637,7 +653,7 @@ class GameDisplay(InstructionGroup):
                         listen_collision_ground=self.listen_collision_ground,
                              listen_collision_powerup=self.listen_collision_powerup,
                              listen_collision_below_blocks=self.listen_collision_below_block)
-        self.main_bar = MainProgressBar(self.player.toggle_glow)
+        self.main_bar = MainProgressBar(self.audio_manager.primary_song.get_length(), self.player.toggle_glow)
         self.add(self.main_bar)
 
         self.add(self.player)
@@ -724,10 +740,11 @@ class GameDisplay(InstructionGroup):
     def on_update(self, dt):
         if not self.paused:
             self.player.on_update(dt)
-            self.main_bar.on_update(dt)
+            self.main_bar.on_glow_update(dt)
             if abs(self.current_frame - self.last_powerup_bars_update) > Audio.sample_rate / 2:
                 self.powerup_bars.on_update(dt + 0.5)
                 self.last_powerup_bars_update = self.current_frame
+                self.main_bar.on_progress_bar_update(dt + 0.5)
             removed_items = set()
 
             # UPDATE EACH POWERUP AND BLOCK, AND TRACK IF THEY ARE REMOVED OR NOT FROM THE GAME FRAME
@@ -950,3 +967,4 @@ class GameDisplay(InstructionGroup):
         self.change_blocks()
         self.reset_game_speed()
         self.main_bar.add_level()
+        self.main_bar.reset_song_frame(self.audio_manager.primary_song.frame, self.audio_manager.primary_song.get_length())
