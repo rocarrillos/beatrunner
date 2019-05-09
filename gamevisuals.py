@@ -46,6 +46,12 @@ TEXTURES = {'vocals_boost': Image("img/mic.jpg").texture, 'bass_boost': Image("i
             "end_transition": Image("img/red_spiral.png").texture, "riser":Image("img/riser.png").texture,
             "trophy": Image("img/trophy.png").texture, "danger": Image("img/skull.png").texture,
             "transition_token":Image("img/coin.png").texture, "transition":Image("img/transition_final.png").texture}
+
+BPM = {
+    "Baby Shark": 120,
+    "Closer": 90,
+    "Mi Gente": 140
+}
 # Color constants
 BLACK = Color(0, 0, 0)
 WHITE = Color(1, 1, 1)
@@ -505,6 +511,53 @@ class MainProgressBar(InstructionGroup):
         self.song_frame = next_song_frame
         self.song_length = next_song_length
 
+class BeatMatcher(InstructionGroup):
+    def __init__(self, audio_manager, primary_speed, secondary_speed):
+        super(BeatMatcher, self).__init__()
+        self.primary_speed = primary_speed
+        self.secondary_speed = secondary_speed
+        self.audio_manager = audio_manager
+        self.x_pos = SCREEN_WIDTH - 150
+        self.y_pos = SCREEN_HEIGHT - 150
+        self.color = Color(rgba=(0.5, 0.5, 0.5, 0.75))
+        self.add(self.color)
+        self.base = 70
+        # how to keep everything lined up between 70 and 140?
+        # 90. double = 180. 90%70=20. 180%70=40 270%70 = 60. 
+        # so (current_speed % base) / int(current_speed / base_speed)
+        self.bg = Rectangle(pos=(self.x_pos, self.y_pos), size=(140, 30))
+        self.add(self.bg)
+        self.target = CEllipse(cpos=(self.x_pos + 2 * self.calculate_pos(self.audio_manager.get_secondary_bpm(), self.audio_manager.get_secondary_speed()), self.y_pos + 15), csize=(20, 20))
+        self.add(RED)
+        self.add(self.target)
+        self.aimer = CEllipse(cpos=(self.x_pos + 2 * self.calculate_pos(self.audio_manager.get_primary_bpm(), self.audio_manager.get_primary_speed()), self.y_pos + 15), csize=(20, 20))
+        self.add(GREEN)
+        self.add(self.aimer)
+
+    def calculate_pos(self, bpm, base_speed):
+        if base_speed > 2: 
+            print(base_speed)
+        return (bpm % self.base) / int(bpm / self.base)
+
+    def transition(self):
+        self.remove(RED)
+        self.remove(GREEN)
+        self.remove(self.target)
+        self.remove(self.aimer)
+        self.target = CEllipse(cpos=(self.x_pos + 2 * self.calculate_pos(self.audio_manager.get_secondary_bpm(), self.audio_manager.get_secondary_speed()), self.y_pos + 15), csize=(20, 20))
+        self.add(RED)
+        self.add(self.target)
+        self.aimer = CEllipse(cpos=(self.x_pos + 2 * self.calculate_pos(self.audio_manager.get_primary_bpm(), self.audio_manager.get_primary_speed()), self.y_pos + 15), csize=(20, 20))
+        self.add(GREEN)
+        self.add(self.aimer)
+
+    def on_update(self, dt):
+        self.remove(self.aimer)
+        self.aimer = CEllipse(cpos=(self.x_pos + 2 * self.calculate_pos(self.audio_manager.get_primary_bpm(), self.audio_manager.get_primary_speed()), self.y_pos + 15), csize=(20, 20))
+        self.add(GREEN)
+        self.add(self.aimer)
+        return True
+
 
 class MenuDisplay(InstructionGroup):
     def __init__(self):
@@ -687,6 +740,10 @@ class GameDisplay(InstructionGroup):
         self.add(self.powerup_bars)
         self.last_powerup_bars_update = 0
 
+        # transition tempo meter
+        self.beatmatcher = BeatMatcher(self.audio_manager, 120, 90)
+        self.add(self.beatmatcher)
+
     # toggle paused of game or not
     def toggle(self):
         """
@@ -726,6 +783,7 @@ class GameDisplay(InstructionGroup):
         if not self.paused:
             self.player.on_update(dt)
             self.main_bar.on_glow_update(dt)
+            self.beatmatcher.on_update(dt)
             if abs(self.current_frame - self.last_powerup_bars_update) > Audio.sample_rate / 2:
                 self.powerup_bars.on_update(dt + 0.5)
                 self.last_powerup_bars_update = self.current_frame
@@ -954,3 +1012,4 @@ class GameDisplay(InstructionGroup):
         self.reset_game_speed()
         self.main_bar.add_level()
         self.main_bar.reset_song_frame(self.audio_manager.get_current_frame(), self.audio_manager.get_current_length())
+        self.beatmatcher.transition()

@@ -11,7 +11,7 @@ class MainWidget(BaseWidget) :
         self.anim_group = AnimGroup()
         self.other_label = topright_label()
         self.game_data = GameData()
-        self.audio_manager = AudioManager(self.game_data.audio_file_name)
+        self.audio_manager = AudioManager(self.game_data.get_song(), self.game_data.get_next_song())
         self.screen = "menu"
         self.song_data = SongData()
         self.song_data.read_data(*self.game_data.song_data_files, 0)
@@ -78,9 +78,9 @@ class MainWidget(BaseWidget) :
             
     def handle_transition(self):
         self.game_data.transition()
-        self.audio_manager.start_transition_song(self.game_data.audio_file_name)
+        self.audio_manager.add_transition_song(self.game_data.audio_file_name)
         self.song_data.read_data(*self.game_data.song_data_files, self.lifetime)  ## transition
-        self.audio_manager.end_transition_song()
+        self.audio_manager.end_transition_song(self.game_data.get_next_song())
         self.game_display.graphics_transition(self.game_data.player_image, self.game_data.ground_image,
                                         self.game_data.block_image)
 
@@ -89,6 +89,9 @@ class MainWidget(BaseWidget) :
             self.label.text = "Level "+str(self.game_data.level + 1) + "\n"
             # Welcome to Beat Runner\n[p] play/pause [w] jump [t hold] transition\n
             self.label.text += "Score: " + str(self.audio_manager.score) + "\n"
+            # this is just so i can see the bpm while i work
+            self.other_label.text = str(int(self.audio_manager.get_primary_bpm())) + "\n"
+            self.other_label.text += str(int(self.audio_manager.get_secondary_bpm()))
             if not self.playing:
                 self.label.text += "Press P to play"
         if self.screen == "tutorial":
@@ -134,5 +137,6 @@ class SongData(object):
         for p in powerups:
             powerup = p.split()
             self.powerups.append((float(powerup[0]), int(powerup[2]), str(powerup[3])))
+
 
 run(MainWidget)

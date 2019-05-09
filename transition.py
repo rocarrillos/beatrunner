@@ -22,12 +22,19 @@ class GameData(object):
     def __init__(self):
         super(GameData, self).__init__()
         self.level = 0
-        self.audio_file_name = AUDIO_FILES[0]
-        self.song_data_files = SONG_DATA_FILES[0]
+        self.audio_file_name = AUDIO_FILES[self.level]
+        self.song_data_files = SONG_DATA_FILES[self.level]
 
-        self.player_image = PLAYER_IMAGES[0]
-        self.block_image = BLOCK_IMAGES[0]
-        self.ground_image = GROUND_IMAGES[0]
+        self.player_image = PLAYER_IMAGES[self.level]
+        self.block_image = BLOCK_IMAGES[self.level]
+        self.ground_image = GROUND_IMAGES[self.level]
+        self.next_song_name = AUDIO_FILES[self.level + 1]
+
+    def get_song(self):
+        return self.audio_file_name
+
+    def get_next_song(self):
+        return self.next_song_name
 
     def transition(self):
         self.level += 1
@@ -36,4 +43,5 @@ class GameData(object):
         self.player_image = PLAYER_IMAGES[self.level]
         self.block_image = BLOCK_IMAGES[self.level]
         self.ground_image = GROUND_IMAGES[self.level]
+        self.next_song_name = AUDIO_FILES[self.level + 1 ] if self.level < len(AUDIO_FILES) else None
 

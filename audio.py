@@ -21,7 +21,7 @@ import math
 
 
 class AudioManager(object):
-    def __init__(self, audiofile):
+    def __init__(self, first_file, second_file):
         super(AudioManager, self).__init__()
         self.audio = Audio(2)
         self.mixer = Mixer()
@@ -31,8 +31,8 @@ class AudioManager(object):
         self.mixer.set_gain(1)
 
         # setup audio files
-        self.primary_song = Song(audiofile)
-        self.secondary_song = None
+        self.primary_song = Song(first_file)
+        self.secondary_song = Song(second_file)
 
         # effects notes
         self.powerup_note = 69
@@ -46,6 +46,9 @@ class AudioManager(object):
         self.sfx.program(2, 0, 121) # breath noise
         self.sfx.program(3, 0, 114) # soundtrack
         self.sfx.program(4, 0, 126) # applause
+
+        self.bpms = [120, 90, 140]
+        self.transitions = 0
 
         # hook everything up
         self.mixer.add(self.primary_song)
@@ -127,6 +130,21 @@ class AudioManager(object):
     def ethereal(self):
         pass
 
+    def get_primary_speed(self):
+        return self.primary_song.get_speed()
+    
+    def get_secondary_speed(self):
+        return self.secondary_song.get_speed() if self.secondary_song is not None else 1
+
+    def get_primary_bpm(self):
+        return self.bpms[self.transitions] * self.primary_song.get_speed()
+
+    def get_secondary_bpm(self):
+        if self.transitions < len(self.bpms) and self.secondary_song is not None:
+            return self.bpms[self.transitions + 1] * self.secondary_song.get_speed()
+        else:
+            return 0
+
     # speedup the song and/or sampler
     def speedup(self):
         self.primary_song.set_speed(self.primary_song.get_speed() * 2**(1/12))
@@ -149,19 +167,20 @@ class AudioManager(object):
         self.primary_song.set_sampling_off_frame(frame)
 
     # start the song transition. Here, init the new song as a WaveGenerator and add it to the mixer.
-    def start_transition_song(self, audio_file):
-        self.secondary_song = Song(audio_file, gain=0.25)
+    def add_transition_song(self, audio_file):
+        # self.secondary_song = Song(audio_file, gain=0.25)
         self.mixer.add(self.secondary_song)
 
     # end the song transition by putting all the secondary song refs as the primary song refs.
     # remove the primary song from the mixer.
     # remove any samples that may be playing.
-    def end_transition_song(self):
+    def end_transition_song(self, next_song):
         self.score += self.get_transition_score()
         self.mixer.remove(self.primary_song)
         self.primary_song.reset_sample()
         self.primary_song = self.secondary_song
-        self.secondary_song = None
+        self.secondary_song = Song(next_song)
+        self.transitions += 1
         
     # reset the sampling and reinstate the normal playing song
     def reset_sample(self):
