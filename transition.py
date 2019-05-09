@@ -3,9 +3,10 @@ SONG_DATA_FILES = [("data/babyshark_blocks.txt", "data/babyshark_powerups.txt"),
                     ("data/closer_blocks.txt", "data/closer_powerups.txt"),
                     ("data/migente_blocks.txt", "data/migente_powerups.txt")]
 
-PLAYER_IMAGES = ["img/shark.png","img/lizard.png", "img/eagle.jpg"]
-BLOCK_IMAGES = ["img/wav.png", "img/brick.jpg", "img/cloud.png"]
-GROUND_IMAGES = ["img/sand.png", "img/grass.jpg", "img/blank.png"]
+PLAYER_IMAGES = [["img/shark.png", "img/shark_jump.png","img/shark_fall.png"],["img/dinosaur.png","img/dinosaur_jump.png","img/dinosaur_fall.png"], ["img/bird.png","img/bird_jump.png","img/bird_fall.png"]]
+BLOCK_IMAGES = ["img/wav.png", "img/forest_block.png", "img/cloud.png"]
+GROUND_IMAGES = ["img/sand.png", "img/rock_ground.png", "img/blank.png"]
+BACKGROUND_IMAGES = ["img/ocean.jpg", "img/forest.jpg", "img/clouds.jpg"]
 
 
 ##
@@ -29,6 +30,7 @@ class GameData(object):
         self.block_image = BLOCK_IMAGES[self.level]
         self.ground_image = GROUND_IMAGES[self.level]
         self.next_song_name = AUDIO_FILES[self.level + 1]
+        self.bg_image = BACKGROUND_IMAGES[self.level]
 
     def get_song(self):
         return self.audio_file_name
@@ -40,8 +42,9 @@ class GameData(object):
         self.level += 1
         self.audio_file_name = AUDIO_FILES[self.level]
         self.song_data_files = SONG_DATA_FILES[self.level]
-        self.player_image = PLAYER_IMAGES[self.level]
+        self.player_images = PLAYER_IMAGES[self.level]
         self.block_image = BLOCK_IMAGES[self.level]
         self.ground_image = GROUND_IMAGES[self.level]
         self.next_song_name = AUDIO_FILES[self.level + 1 ] if self.level < len(AUDIO_FILES) else None
 
+        self.bg_image = BACKGROUND_IMAGES[self.level]

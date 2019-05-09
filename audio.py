@@ -301,17 +301,17 @@ class Song(object):
         return self.wave_gen.get_length()
 
     def set_sampling_on_frame(self, frame):
-        self.sample_on_frame = frame
+        self.sampler_on_frame = frame
 
     def set_sampling_off_frame(self, frame):
-        if self.sample_on_frame:
-            self.sample_off_frame = frame
-            self.sampler = SpeedModulator(WaveGenerator(WaveBuffer(self.audio_file, self.sample_on_frame,self.get_frame() - self.sample_on_frame), loop=True),speed=self.get_speed())
+        if self.sampler_on_frame:
+            self.sampler_off_frame = frame
+            self.sampler = SpeedModulator(WaveGenerator(WaveBuffer(self.audio_file, self.sampler_on_frame,self.get_frame() - self.sampler_on_frame), loop=True),speed=self.get_speed())
             self.sampler.set_gain(self.get_gain())
 
     def reset_sample(self):
         self.sampler = None
-        self.sample_on_frame, self.sample_off_frame = 0, 0
+        self.sampler_on_frame, self.sampler_off_frame = 0, 0
 
     def generate(self, num_frames, num_channels):
         # if sampling on, you still want to generate from main song, to keep it playing. just don't return it.

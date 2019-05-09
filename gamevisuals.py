@@ -83,6 +83,8 @@ class Player(InstructionGroup):
         super(Player, self).__init__()
         self.pos = (PLAYER_X-PLAYER_WIDTH, GROUND_Y)
         self.texture = Image('img/shark.png').texture
+        self.jump_texture = Image('img/shark_jump.png').texture
+        self.fall_texture = Image('img/shark_fall.png').texture
         self.glow_color = Color(1,1,1)
         self.add(self.glow_color)
         self.rect = Rectangle(pos=self.pos, size=(PLAYER_WIDTH, PLAYER_HEIGHT), texture=self.texture)
@@ -132,11 +134,13 @@ class Player(InstructionGroup):
             self.jump_anim = KFAnim((0,current_y), (0.25, slow_down_y_1), 
                                     (0.35, slow_down_y_2), (0.5, slow_down_y_3), (0.6, max_y))
             self.fall_on = False
+            self.rect.texture = self.jump_texture
 
     def on_fall(self):
         self.dt = 0
         self.jump_anim = None
         self.fall_on = True
+        self.rect.texture = self.fall_texture
 
     def toggle_glow(self, glow):
         self.glow = glow
@@ -167,6 +171,7 @@ class Player(InstructionGroup):
             if collision:
                 self.fall_on = False
                 self.fall_vel = np.array((0, 0), dtype=np.float)
+                self.rect.texture = self.texture
             elif self.get_pos()[1] > GROUND_Y and not self.jump_anim:
                 self.on_fall()
 
@@ -178,8 +183,9 @@ class Player(InstructionGroup):
         powerup = self.listen_collision_powerup(self)  # powerups
         return True        
 
-    def set_texture(self, new_texture):
-        self.rect.texture = Image(new_texture).texture
+    def set_textures(self, new_textures):
+        self.texture, self.jump_texture, self.fall_texture = [Image(new_texture).texture for new_texture in new_textures]
+        self.rect.texture = self.texture
 
 
 ##
@@ -254,8 +260,6 @@ class Background(InstructionGroup):
     def __init__(self):
         super(Background, self).__init__()
         self.add(WHITE)
-        self.counter = 0
-        self.bgs = ["img/ocean.jpg", "img/field.jpg", "img/clouds.jpg"]
         self.bg = Rectangle(pos=(0, 0), size=[SCREEN_WIDTH, SCREEN_HEIGHT], texture=Image("img/ocean.jpg").texture)
         self.add(self.bg)
 
@@ -265,9 +269,8 @@ class Background(InstructionGroup):
     def get_pos(self):
         return self.bg.pos
 
-    def change(self):
-        self.counter = self.counter + 1 if self.counter < len(self.bgs) else self.counter
-        self.bg.texture = Image(self.bgs[self.counter]).texture
+    def set_texture(self, new_texture):
+        self.bg.texture = Image(new_texture).texture
 
     def show_death(self):
         self.bg.texture = Image("img/youdied.jpg").texture
@@ -506,6 +509,7 @@ class MainProgressBar(InstructionGroup):
         self.glow_dt = 0
         self.glow = False
         self.inside_color.b = 0
+        self.trigger_glow_listener(self.glow)
 
     def reset_song_frame(self, next_song_frame, next_song_length):
         self.song_frame = next_song_frame
@@ -995,7 +999,7 @@ class GameDisplay(InstructionGroup):
         for powerup in self.powerups:
             powerup.change_speed(self.game_speed)
 
-    def graphics_transition(self, player_texture, ground_texture, block_texture):
+    def graphics_transition(self, player_textures, ground_texture, background_texture, block_texture):
         """
         Handler for song-to-song transitions.
         Updates player object, resets song progress bar, and resets game speed.
@@ -1004,9 +1008,9 @@ class GameDisplay(InstructionGroup):
             ground_texture (texture): new texture for the ground
             block_texture  (texture): new texture for the blocks
         """
-        self.player.set_texture(player_texture)
+        self.player.set_textures(player_textures)
         self.ground.set_texture(ground_texture)
-        self.background.change()
+        self.background.set_texture(background_texture)
         self.block_texture = block_texture
         self.change_blocks()
         self.reset_game_speed()
