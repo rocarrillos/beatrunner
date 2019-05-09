@@ -254,8 +254,6 @@ class Background(InstructionGroup):
     def __init__(self):
         super(Background, self).__init__()
         self.add(WHITE)
-        self.counter = 0
-        self.bgs = ["img/ocean.jpg", "img/field.jpg", "img/clouds.jpg"]
         self.bg = Rectangle(pos=(0, 0), size=[SCREEN_WIDTH, SCREEN_HEIGHT], texture=Image("img/ocean.jpg").texture)
         self.add(self.bg)
 
@@ -265,9 +263,8 @@ class Background(InstructionGroup):
     def get_pos(self):
         return self.bg.pos
 
-    def change(self):
-        self.counter = self.counter + 1 if self.counter < len(self.bgs) else self.counter
-        self.bg.texture = Image(self.bgs[self.counter]).texture
+    def set_texture(self, new_texture):
+        self.bg.texture = Image(new_texture).texture
 
     def show_death(self):
         self.bg.texture = Image("img/youdied.jpg").texture
@@ -944,7 +941,7 @@ class GameDisplay(InstructionGroup):
         for powerup in self.powerups:
             powerup.change_speed(self.game_speed)
 
-    def graphics_transition(self, player_textures, ground_texture, block_texture):
+    def graphics_transition(self, player_textures, ground_texture, background_texture, block_texture):
         """
         Handler for song-to-song transitions.
         Updates player object, resets song progress bar, and resets game speed.
@@ -955,7 +952,7 @@ class GameDisplay(InstructionGroup):
         """
         self.player.set_textures(player_textures)
         self.ground.set_texture(ground_texture)
-        self.background.change()
+        self.background.set_texture(background_texture)
         self.block_texture = block_texture
         self.change_blocks()
         self.reset_game_speed()

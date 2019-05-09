@@ -4,8 +4,9 @@ SONG_DATA_FILES = [("data/babyshark_blocks.txt", "data/babyshark_powerups.txt"),
                     ("data/migente_blocks.txt", "data/migente_powerups.txt")]
 
 PLAYER_IMAGES = [["img/shark.png", "img/shark_jump.png","img/shark_fall.png"],["img/dinosaur.png","img/dinosaur_jump.png","img/dinosaur_fall.png"], ["img/bird.png","img/bird_jump.png","img/bird_fall.png"]]
-BLOCK_IMAGES = ["img/wav.png", "img/brick.jpg", "img/cloud.png"]
-GROUND_IMAGES = ["img/sand.png", "img/grass.jpg", "img/blank.png"]
+BLOCK_IMAGES = ["img/wav.png", "img/forest_block.png", "img/cloud.png"]
+GROUND_IMAGES = ["img/sand.png", "img/rock_ground.png", "img/blank.png"]
+BACKGROUND_IMAGES = ["img/ocean.jpg", "img/forest.jpg", "img/clouds.jpg"]
 
 
 ##
@@ -28,6 +29,7 @@ class GameData(object):
         self.player_images = PLAYER_IMAGES[0]
         self.block_image = BLOCK_IMAGES[0]
         self.ground_image = GROUND_IMAGES[0]
+        self.bg_image = BACKGROUND_IMAGES[0]
 
     def transition(self):
         self.level += 1
@@ -36,4 +38,4 @@ class GameData(object):
         self.player_images = PLAYER_IMAGES[self.level]
         self.block_image = BLOCK_IMAGES[self.level]
         self.ground_image = GROUND_IMAGES[self.level]
-
+        self.bg_image = BACKGROUND_IMAGES[self.level]

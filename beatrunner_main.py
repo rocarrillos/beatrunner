@@ -71,7 +71,8 @@ class MainWidget(BaseWidget) :
                     self.screen = "tutorial"
 
     def on_key_up(self, keycode):
-        self.game_display.on_fall()
+        if keycode[1] == "w":
+            self.game_display.on_fall()
 
         # if keycode[1] == 't':
         #     self.handle_transition()
@@ -82,7 +83,7 @@ class MainWidget(BaseWidget) :
         self.song_data.read_data(*self.game_data.song_data_files, self.lifetime)  ## transition
         self.audio_manager.end_transition_song()
         self.game_display.graphics_transition(self.game_data.player_images, self.game_data.ground_image,
-                                        self.game_data.block_image)
+                                        self.game_data.bg_image, self.game_data.block_image)
 
     def on_update(self) :
         if self.screen == "game":
