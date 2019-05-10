@@ -90,9 +90,6 @@ class MainWidget(BaseWidget) :
             self.label.text = "Level "+str(self.game_data.level + 1) + "\n"
             # Welcome to Beat Runner\n[p] play/pause [w] jump [t hold] transition\n
             self.label.text += "Score: " + str(self.audio_manager.score) + "\n"
-            # this is just so i can see the bpm while i work
-            self.other_label.text = str(int(self.audio_manager.get_primary_bpm())) + "\n"
-            self.other_label.text += str(int(self.audio_manager.get_secondary_bpm()))
             if not self.playing:
                 self.label.text += "Press P to play"
         if self.screen == "tutorial":
