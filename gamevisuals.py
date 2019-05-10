@@ -45,7 +45,10 @@ TEXTURES = {'vocals_boost': Image("img/mic.jpg").texture, 'bass_boost': Image("i
             "reset_sample":Image("img/sample_off.png").texture, "start_transition": Image("img/green_spiral.png").texture,
             "end_transition": Image("img/red_spiral.png").texture, "riser":Image("img/riser.png").texture,
             "trophy": Image("img/trophy.png").texture, "danger": Image("img/skull.png").texture,
-            "transition_token":Image("img/coin.png").texture, "transition":Image("img/transition_final.png").texture}
+            "transition_token":Image("img/coin.png").texture, "transition":Image("img/transition_final.png").texture,
+            "reset": Image("img/reset_speed.png").texture}
+## TODO: CHANGE THIS TO AN R IMAGE OR SOMEHINTG
+
 
 BPM = {
     "Baby Shark": 120,
@@ -741,7 +744,8 @@ class GameDisplay(InstructionGroup):
                                   "trophy": [self.audio_manager.toggle, self.toggle, self.win_game],
                                   'danger': [self.audio_manager.toggle, self.toggle, self.lose_game],
                                   'transition_token': [self.audio_manager.add_transition_token, self.main_bar.add_powerup],
-                                  "transition": [self.data_audio_transition_listener]}
+                                  "transition": [self.data_audio_transition_listener],
+                                  "reset":[self.audio_manager.reset, self.main_bar.add_powerup]}
 
         # game states
         self.paused = True

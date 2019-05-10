@@ -188,6 +188,10 @@ class AudioManager(object):
 
     def reset_speed(self):
         self.primary_song.set_speed(1)
+
+    def reset(self):
+        self.reset_speed()
+        self.reset_sample()
         
     def add_transition_token(self):
         pass
@@ -304,10 +308,12 @@ class Song(object):
         self.sampler_on_frame = frame
 
     def set_sampling_off_frame(self, frame):
-        if self.sampler_on_frame:
+        if self.sampler_on_frame and not self.sampler_off_frame:
             self.sampler_off_frame = frame
             self.sampler = SpeedModulator(WaveGenerator(WaveBuffer(self.audio_file, self.sampler_on_frame,self.get_frame() - self.sampler_on_frame), loop=True),speed=self.get_speed())
             self.sampler.set_gain(self.get_gain())
+        elif self.sampler_off_frame:
+            self.reset_sample()
 
     def reset_sample(self):
         self.sampler = None
