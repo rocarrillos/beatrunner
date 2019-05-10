@@ -274,11 +274,13 @@ class Song(object):
         self.audio_file = audiofile
         self.wave_gen = WaveGenerator(WaveFile(self.audio_file))
         self.speed_mod = SpeedModulator(self.wave_gen)
-        self.filter = Filter(self.speed_mod)
+        self.mixer = Mixer()
+        self.mixer.add(self.speed_mod)
+        self.song_filter = FilterMixer(self.speed_mod)
         self.gain = gain
         self.wave_gen.set_gain(self.gain)
 
-        self.sampler = None
+        self.sampler_filter = None
         self.sampler_on_frame, self.sampler_off_frame = 0,0
 
     def set_gain(self, new_gain):
@@ -295,8 +297,8 @@ class Song(object):
     def get_speed(self):
         return self.speed_mod.get_speed()
 
-    def change_pass(self, new_pass):
-        self.filter.change_pass(new_pass)
+    def set_filter(self, filter_type):
+        self.song_filter.set_filter(filter_type)
 
     def get_frame(self):
         return self.wave_gen.frame
@@ -310,7 +312,7 @@ class Song(object):
     def set_sampling_off_frame(self, frame):
         if self.sampler_on_frame and not self.sampler_off_frame:
             self.sampler_off_frame = frame
-            self.sampler = SpeedModulator(WaveGenerator(WaveBuffer(self.audio_file, self.sampler_on_frame,self.get_frame() - self.sampler_on_frame), loop=True),speed=self.get_speed())
+            self.sampler = FilterMixer(SpeedModulator(WaveGenerator(WaveBuffer(self.audio_file, self.sampler_on_frame,self.get_frame() - self.sampler_on_frame), loop=True),speed=self.get_speed()))
             self.sampler.set_gain(self.get_gain())
         elif self.sampler_off_frame:
             self.reset_sample()
@@ -321,7 +323,7 @@ class Song(object):
 
     def generate(self, num_frames, num_channels):
         # if sampling on, you still want to generate from main song, to keep it playing. just don't return it.
-        returned_frames = self.filter.generate(num_frames, num_channels)
+        returned_frames = self.filter_mixer.generate(num_frames, num_channels)
         if self.sampler:
             returned_frames = self.sampler.generate(num_frames, num_channels)
         return returned_frames
@@ -369,6 +371,42 @@ class Filter(object):
             frames[0::2] = frames_left
             frames[1::2] = frames_right
         return (frames, self.continue_flag)
+
+
+class FilteredBuffer(object):
+    def __init__(self, )
+
+class FilterMixer(object):
+    def __init__(self, shape, start, regular, get_gain=None, low=None, high=None):
+        super(FilterGenerator, self).__init__()
+        self.shape = shape
+        self.start_frame = start
+        self.end_frame = start + self.get_length()
+        self.regular = regular
+        self.high = high
+        self.low = low
+        self.get_gain = get_gain
+        self.mixer = Mixer()
+
+    def update(self, frame):
+        if self.shape == "high":
+            self.regular.set_gain(0)
+            self.high.set_gain(self.get_gain())
+        return frame - self.start_frame < 8 * Audio.sample_rate
+
+    def set_filter(self, f_type):
+        if f_type == "high":
+            self.mixer.add(SpeedModulator(WaveGenerator(
+                WaveBuffer(self.primary_audiofile[:-4] + "_high.wav", self.get_current_frame(), 
+                self.get_current_frame() + 8*Audio.sample_rate)))
+            )
+
+    def get_length(self):
+        return 8 * Audio.sample_rate
+
+    def generate(self, num_frames, num_channels):
+        return self.mixer.generate(num_frames, num_channels)
+
 
 
 def running_mean(x, windowsize):
