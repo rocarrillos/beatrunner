@@ -34,7 +34,7 @@ BLOCK_UNIT_LENGTH = int(SCREEN_WIDTH/4)
 PLAYER_HEIGHT = int(2 * SCREEN_HEIGHT / 20)
 PLAYER_WIDTH = int(SCREEN_HEIGHT / 10)
 
-POWERUP_LENGTH = int(SCREEN_WIDTH/20)
+POWERUP_LENGTH = int(SCREEN_WIDTH / 20)
 
 TEXTURES = {'vocals_boost': Image("img/mic.jpg").texture, 'bass_boost': Image("img/bass.jpg").texture,
             'powerup_note':Image("img/riser.png").texture,"lower_volume":Image("img/arrowdownred.png").texture,
@@ -58,6 +58,8 @@ WHITE = Color(1, 1, 1)
 RED = Color(1, 0, 0)
 GREEN = Color(0, 1, 0)
 BLUE = Color(0, 0, 1)
+LBLUE = Color(0.75, 0.75, 1)
+YELLOW = Color(1, 1, 0)
 
 gravity = np.array((0, -1800))
 
@@ -359,9 +361,9 @@ class ProgressBars(InstructionGroup):
     def __init__(self, text_label):
         super(ProgressBars, self).__init__()
         self.progress_bars = {}
-        self.bar_positions = [(3.85* SCREEN_WIDTH / 5, SCREEN_HEIGHT * 0.9),
-                                (3.85 * SCREEN_WIDTH/5, SCREEN_HEIGHT*0.85),
-                                (3.85*SCREEN_WIDTH/5, SCREEN_HEIGHT*0.8)]
+        self.bar_positions = [(3.9 * SCREEN_WIDTH / 5, SCREEN_HEIGHT * 0.8),
+                              (3.9 * SCREEN_WIDTH / 5, SCREEN_HEIGHT * 0.75),
+                              (3.9 * SCREEN_WIDTH / 5, SCREEN_HEIGHT * 0.7)]
         self.text_label = text_label
 
     # add a new bar - pass in a generator object to extract sample length, and the sound name to refer to it
@@ -421,9 +423,9 @@ class SoundProgressBar(InstructionGroup):
         self.sound_name = sound_name
         self.dt = 0  # the total time we've spent playing the audio sample
         self.end_frame = wave_src.get_length()  # the total length of the sample.
-        self.outside_color = WHITE
+        self.outside_color = Color(rgba=(0.5, 0.5, 0.5, 0.75))
         self.outside_rect = Rectangle(pos=pos, size=[SCREEN_WIDTH / 6, SCREEN_HEIGHT / 20 - 5])
-        self.inside_color = GREEN
+        self.inside_color = LBLUE
         self.inside_rect = Rectangle(pos=pos+np.array([2, 2]), size=[0, SCREEN_HEIGHT / 20 - 9])
         self.max_length = SCREEN_WIDTH / 6 - 4
 
@@ -434,13 +436,15 @@ class SoundProgressBar(InstructionGroup):
 
     def on_update(self, dt):
         self.dt += dt
+        self.remove(self.inside_color)
+        self.remove(self.inside_rect)
         if self.dt * Audio.sample_rate / self.end_frame > 0.9:  # red
-            self.inside_color.g = 0
+            self.inside_color = RED
         elif self.dt * Audio.sample_rate / self.end_frame > 0.67:  # yellow
-            self.inside_color.r = 1
-
+            self.inside_color = YELLOW
+        self.add(self.inside_color)
         self.inside_rect.size = [int((self.dt * Audio.sample_rate / self.end_frame) * self.max_length), SCREEN_HEIGHT / 20 - 9]
-
+        self.add(self.inside_rect)
         return not self.dt * Audio.sample_rate > self.end_frame
 
 
@@ -521,20 +525,22 @@ class BeatMatcher(InstructionGroup):
         self.primary_speed = primary_speed
         self.secondary_speed = secondary_speed
         self.audio_manager = audio_manager
-        self.x_pos = SCREEN_WIDTH - 150
-        self.y_pos = SCREEN_HEIGHT - 150
+        self.base = 70
+        self.width = SCREEN_WIDTH / 6
+        self.x_pos = 3.9 * SCREEN_WIDTH / 5
+        self.y_pos = SCREEN_HEIGHT * 0.9
         self.color = Color(rgba=(0.5, 0.5, 0.5, 0.75))
         self.add(self.color)
-        self.base = 70
+        # size=[SCREEN_WIDTH / 6, SCREEN_HEIGHT / 20 - 5]
         # how to keep everything lined up between 70 and 140?
         # 90. double = 180. 90%70=20. 180%70=40 270%70 = 60. 
         # so (current_speed % base) / int(current_speed / base_speed)
-        self.bg = Rectangle(pos=(self.x_pos, self.y_pos), size=(140, 30))
+        self.bg = Rectangle(pos=(self.x_pos, self.y_pos), size=(self.width, SCREEN_HEIGHT / 20))
         self.add(self.bg)
-        self.target = CEllipse(cpos=(self.x_pos + 2 * self.calculate_pos(self.audio_manager.get_secondary_bpm(), self.audio_manager.get_secondary_speed()), self.y_pos + 15), csize=(20, 20))
+        self.target = CEllipse(cpos=(self.x_pos + (self.width / self.base) * self.calculate_pos(self.audio_manager.get_secondary_bpm(), self.audio_manager.get_secondary_speed()), self.y_pos + 15), csize=(25, 25))
         self.add(RED)
         self.add(self.target)
-        self.aimer = CEllipse(cpos=(self.x_pos + 2 * self.calculate_pos(self.audio_manager.get_primary_bpm(), self.audio_manager.get_primary_speed()), self.y_pos + 15), csize=(20, 20))
+        self.aimer = CEllipse(cpos=(self.x_pos + (self.width / self.base) * self.calculate_pos(self.audio_manager.get_primary_bpm(), self.audio_manager.get_primary_speed()), self.y_pos + 15), csize=(20, 20))
         self.add(GREEN)
         self.add(self.aimer)
 
@@ -548,7 +554,7 @@ class BeatMatcher(InstructionGroup):
         self.remove(GREEN)
         self.remove(self.target)
         self.remove(self.aimer)
-        self.target = CEllipse(cpos=(self.x_pos + 2 * self.calculate_pos(self.audio_manager.get_secondary_bpm(), self.audio_manager.get_secondary_speed()), self.y_pos + 15), csize=(20, 20))
+        self.target = CEllipse(cpos=(self.x_pos + 2 * self.calculate_pos(self.audio_manager.get_secondary_bpm(), self.audio_manager.get_secondary_speed()), self.y_pos + 15), csize=(25, 25))
         self.add(RED)
         self.add(self.target)
         self.aimer = CEllipse(cpos=(self.x_pos + 2 * self.calculate_pos(self.audio_manager.get_primary_bpm(), self.audio_manager.get_primary_speed()), self.y_pos + 15), csize=(20, 20))
@@ -556,9 +562,13 @@ class BeatMatcher(InstructionGroup):
         self.add(self.aimer)
 
     def on_update(self, dt):
+        diff = abs(2 * self.calculate_pos(self.audio_manager.get_secondary_bpm(), self.audio_manager.get_secondary_speed()) - 2 * self.calculate_pos(self.audio_manager.get_primary_bpm(), self.audio_manager.get_primary_speed()))
         self.remove(self.aimer)
         self.aimer = CEllipse(cpos=(self.x_pos + 2 * self.calculate_pos(self.audio_manager.get_primary_bpm(), self.audio_manager.get_primary_speed()), self.y_pos + 15), csize=(20, 20))
-        self.add(GREEN)
+        if diff <= 5:
+            self.add(YELLOW)
+        else:
+            self.add(GREEN)
         self.add(self.aimer)
         return True
 

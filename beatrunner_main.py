@@ -10,6 +10,7 @@ class MainWidget(BaseWidget) :
         super(MainWidget, self).__init__()
         self.anim_group = AnimGroup()
         self.other_label = topright_label()
+        self.other_label.text = ""
         self.game_data = GameData()
         self.audio_manager = AudioManager(self.game_data.get_song(), self.game_data.get_next_song())
         self.screen = "menu"
