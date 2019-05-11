@@ -31,7 +31,7 @@ def topleft_label() :
 
 def topright_label():
     l = Label(text="text",valign='top', font_size='20sp',
-              pos=(Window.width*1.15, Window.height *0.35),
+              pos=(Window.width*1.13, Window.height *0.255),
               text_size=(Window.width, Window.height),
               outline_width=1)
     return l
