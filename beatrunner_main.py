@@ -1,5 +1,5 @@
 from audio import *
-from gamevisuals import *
+from gamevisuals import GameDisplay, MenuDisplay, TutorialDisplay
 from transition import *
 
 import time
@@ -18,7 +18,7 @@ class MainWidget(BaseWidget) :
         self.song_data.read_data(*self.game_data.song_data_files, 0)
         self.game_display = GameDisplay(self.song_data.blocks, self.song_data.powerups, self.audio_manager, self.other_label, self.handle_transition)
         self.menu_display = MenuDisplay()
-        self.tutorial_display = TutorialDisplay()
+        self.tutorial_display = TutorialDisplay(self.song_data.blocks, self.song_data.powerups, self.audio_manager, self)
         self.anim_group.add(self.menu_display)
 
         self.playing = False
@@ -49,6 +49,9 @@ class MainWidget(BaseWidget) :
             if self.screen == "game":
                 self.audio_manager.play_jump_effect()
                 self.game_display.on_jump()
+            if self.screen == "tutorial":
+                self.audio_manager.play_jump_effect()
+                self.tutorial_display.on_jump()
 
         if keycode[1] == "m":
             if self.screen == "game":
@@ -100,7 +103,10 @@ class MainWidget(BaseWidget) :
 
     def on_key_up(self, keycode):
         if keycode[1] == "w":
-            self.game_display.on_fall()
+            if self.screen == "game":
+                self.game_display.on_fall()
+            if self.screen == "tutorial":
+                self.tutorial_display.on_fall()
 
         # if keycode[1] == 't':
         #     self.handle_transition()
@@ -122,7 +128,6 @@ class MainWidget(BaseWidget) :
                 self.label.text += "Press P to play"
         if self.screen == "tutorial":
             self.label.text = "Tutorial Mode\n"
-            self.label.text += "Press [m] to go back to the home screen"
         if self.screen == "menu":
             self.label.text = ""
         self.anim_group.on_update()
