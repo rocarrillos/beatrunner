@@ -147,10 +147,12 @@ class Player(InstructionGroup):
         self.fall_on = True
         self.rect.texture = self.fall_texture
 
-    def toggle_glow(self, glow):
+    def toggle_glow(self, glow, glow_colors=(1,1,0)):
         self.glow = glow
         if not self.glow:
-            self.glow_color.b = 1
+            self.glow_color.r, self.glow_color.g, self.glow_color.b = 1,1,1
+        else:
+            self.glow_color.r, self.glow_color.g, self.glow_color.b = glow_colors
 
     def on_update(self, dt):
         if self.glow:
@@ -504,10 +506,10 @@ class MainProgressBar(InstructionGroup):
         new_line_length = int((self.song_frame / self.song_length) * self.max_length)
         self.current_song_progress_line.points = self.current_song_progress_line.points[:2]+[int(SCREEN_WIDTH/3) + new_line_length, self.current_song_progress_line.points[3]]
     
-    def add_powerup(self):
+    def add_powerup(self, can_add=True):
         if not self.can_transition():
-            self.powerups_collected += 1
-            self.inside_rect.size = [int(self.max_length * (self.level * 5 + self.powerups_collected)/15),SCREEN_HEIGHT / 15 - 9]
+            if can_add: self.powerups_collected += 1
+            self.inside_rect.size = [int(self.max_length * (self.level * 2 + self.powerups_collected)/6),SCREEN_HEIGHT / 15 - 9]
             self.glow = self.can_transition()
             if self.trigger_glow_listener: self.trigger_glow_listener(self.glow)
 
@@ -523,7 +525,8 @@ class MainProgressBar(InstructionGroup):
         self.song_length = next_song_length
 
     def can_transition(self):
-        return self.powerups_collected >= 5
+        return self.powerups_collected >= 2
+
 
 class BeatMatcher(InstructionGroup):
     def __init__(self, audio_manager, primary_speed, secondary_speed):
@@ -547,8 +550,10 @@ class BeatMatcher(InstructionGroup):
         self.add(RED)
         self.add(self.target)
         self.aimer = CEllipse(cpos=(self.x_pos + (self.width / self.base) * self.calculate_pos(self.audio_manager.get_primary_bpm(), self.audio_manager.get_primary_speed()), self.y_pos + 15), csize=(20, 20))
-        self.add(GREEN)
+        self.add(YELLOW)
         self.add(self.aimer)
+
+        self.can_transition = False
 
     def calculate_pos(self, bpm, base_speed):
         if base_speed > 2: 
@@ -571,10 +576,8 @@ class BeatMatcher(InstructionGroup):
         diff = abs(2 * self.calculate_pos(self.audio_manager.get_secondary_bpm(), self.audio_manager.get_secondary_speed()) - 2 * self.calculate_pos(self.audio_manager.get_primary_bpm(), self.audio_manager.get_primary_speed()))
         self.remove(self.aimer)
         self.aimer = CEllipse(cpos=(self.x_pos + 2 * self.calculate_pos(self.audio_manager.get_primary_bpm(), self.audio_manager.get_primary_speed()), self.y_pos + 15), csize=(20, 20))
-        if diff <= 5:
-            self.add(YELLOW)
-        else:
-            self.add(GREEN)
+        self.can_transition = diff <= 5
+        self.add(GREEN if self.can_transition else YELLOW)
         self.add(self.aimer)
         return True
 
@@ -748,7 +751,7 @@ class GameDisplay(InstructionGroup):
                                   'danger': [self.audio_manager.toggle, self.toggle, self.lose_game],
                                   'transition_token': [self.audio_manager.add_transition_token, self.main_bar.add_powerup],
                                   "transition": [self.data_audio_transition_listener],
-                                  "reset":[self.audio_manager.reset, self.main_bar.add_powerup]}
+                                  "reset":[self.audio_manager.reset, self.main_bar.add_powerup, self.player.toggle_glow]}
 
         # game states
         self.paused = True
@@ -803,6 +806,7 @@ class GameDisplay(InstructionGroup):
     def on_update(self, dt):
         if not self.paused:
             self.player.on_update(dt)
+            self.player.toggle_glow(self.audio_manager.enough_past_powerups(), (0,0.4,1))
             self.main_bar.on_glow_update(dt)
             self.beatmatcher.on_update(dt)
             if abs(self.current_frame - self.last_powerup_bars_update) > Audio.sample_rate / 2:
@@ -868,7 +872,6 @@ class GameDisplay(InstructionGroup):
         """
         y_pos = self.powerup_data[powerup][1]
         p_type = self.powerup_data[powerup][2]
-        print(p_type,self.main_bar.powerups_collected)
 
         if p_type == "transition" and not self.main_bar.can_transition():
             p_type = "reset"  # if you can't transition yet, just set the powerup to be a reset instead of a transition
@@ -981,7 +984,7 @@ class GameDisplay(InstructionGroup):
                     elif powerup.powerup_type == "riser" or "boost" in powerup.powerup_type:
                         powerup.activate([[self.powerup_bars.add_bar]])
                     elif powerup.powerup_type == "reset":
-                        powerup.activate([[self.powerup_bars.remove_bar],[]])
+                        powerup.activate([[self.powerup_bars.remove_bar],[self.audio_manager.enough_past_powerups()],[False]])
                     else:
                         powerup.activate()
                     return powerup
