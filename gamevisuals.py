@@ -369,15 +369,15 @@ class ProgressBars(InstructionGroup):
                               (3.9 * SCREEN_WIDTH / 5, SCREEN_HEIGHT * 0.7)]
         self.text_label = text_label
 
-    # add a new bar - pass in a generator object to extract sample length, and the sound name to refer to it
-    def add_bar(self, wave_src, sound_name):
+    # add a new bar - pass in a sample length, and the sound name to refer to it
+    def add_bar(self, duration, sound_name):
         """
         Add a new bar.
         Arguments:
             wave_src (WaveGenerator): sound source 
             sound_name (string): label text
         """
-        new_bar = SoundProgressBar(wave_src, sound_name, self.bar_positions[len(self.progress_bars)])
+        new_bar = SoundProgressBar(duration, sound_name, self.bar_positions[len(self.progress_bars)])
         self.progress_bars[sound_name] = new_bar
         self.add(new_bar)
 
@@ -413,19 +413,18 @@ class ProgressBars(InstructionGroup):
 # pos: the position to draw the progress bar
 ##
 class SoundProgressBar(InstructionGroup):
-    def __init__(self, wave_src, sound_name, pos):
+    def __init__(self, duration, sound_name, pos):
         """
         Object for a single sound progress bar.
         Arguments:
-            wave_src (WaveGenerator): audio source
+            duration (int): audio sample duration
             sound_name (String): label for progress bar
             pos (tuple): position of bar 
         """
         super(SoundProgressBar, self).__init__()
-        self.wave_gen = wave_src
         self.sound_name = sound_name
         self.dt = 0  # the total time we've spent playing the audio sample
-        self.end_frame = wave_src.get_length()  # the total length of the sample.
+        self.end_frame = duration  # the total length of the sample.
         self.outside_color = Color(rgba=(0.5, 0.5, 0.5, 0.75))
         self.outside_rect = Rectangle(pos=pos, size=[SCREEN_WIDTH / 6, SCREEN_HEIGHT / 20 - 5])
         self.inside_color = LBLUE
@@ -973,7 +972,7 @@ class GameDisplay(InstructionGroup):
                         player_y < powerup_y + POWERUP_LENGTH < player_y + PLAYER_HEIGHT:
                     if powerup.powerup_type == "sample_on" or powerup.powerup_type == "sample_off":
                         powerup.activate([[self.current_frame]])
-                    elif powerup.powerup_type == "riser":
+                    elif powerup.powerup_type == "riser" or powerup.powerup_type == "vocals_boost":
                         powerup.activate([[self.powerup_bars.add_bar]])
                     else:
                         powerup.activate()
