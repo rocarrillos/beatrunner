@@ -11,6 +11,7 @@ from kivy.core.window import Window
 from kivy.graphics.instructions import InstructionGroup
 from kivy.graphics import Color, Ellipse, Line, Rectangle
 from kivy.core.image import Image
+from kivy.core.text import Label as CoreLabel
 
 import random
 import numpy as np
@@ -579,12 +580,94 @@ class BeatMatcher(InstructionGroup):
 class MenuDisplay(InstructionGroup):
     def __init__(self):
         super(MenuDisplay, self).__init__()
-        self.color = Color(0.5, 0.5, 0.5)
+        self.color = Color(rgba=(0.5, 0, 1, 0.5))
         self.add(self.color)
         self.bg = Rectangle(pos=(0, 0), size=[SCREEN_WIDTH, SCREEN_HEIGHT])
         self.add(self.bg)
+        self.buttons = list()
+        self.lvl1_button = MenuButton("Level 1", 0, True)
+        self.tut_button = MenuButton("Walkthrough", 1, False)
+        self.buttons.append(self.tut_button)
+        self.buttons.append(self.lvl1_button)
+        self.add(self.lvl1_button)
+        self.add(self.tut_button)
+        self.highlit_button = 1
+
+    def highlight_button(self, delta):
+        for button in self.buttons:
+            button.unhighlight()
+        self.highlit_button += delta
+        print(self.highlit_button)
+        if self.highlit_button >= len(self.buttons):
+            self.highlit_button = 0
+        if self.highlit_button < 0:
+            self.highlit_button = len(self.buttons) - 1
+        self.buttons[self.highlit_button].highlight()
 
     def on_update(self, dt):
+        for button in self.buttons:
+            button.on_update(dt)
+        return True
+
+class MenuButton(InstructionGroup):
+    def __init__(self, labeltext, offset, selected=False):
+        super(MenuButton, self).__init__()
+        # setup 
+        self.width = 200
+        self.text_color = WHITE
+        self.button_color = Color(0.5, 0.5, 0.5)
+        self.highlight_color = Color(1, 1, 0)
+        self.label = CoreLabel(text=labeltext, font_size=48, halign="center")
+        self.label.refresh()
+        self.outer_rec = Rectangle(pos=(SCREEN_WIDTH / 2 - self.width / 2, SCREEN_HEIGHT / 2 - 60 * offset), size=(self.width, 50))
+        self.inner_rec = Rectangle(pos=(SCREEN_WIDTH / 2 - self.width / 2 + 2, SCREEN_HEIGHT / 2 - 60 * offset + 2), size=(self.width - 5, 45))
+        self.text_rec  = Rectangle(pos=(SCREEN_WIDTH / 2 - self.width / 2 + 20, SCREEN_HEIGHT / 2 - 60 * offset + 10), size=(self.width - 40, 30), texture=self.label.texture)
+        
+        self.selected = selected
+        self.alpha = 0
+        self.direction = 0.5
+
+        # draw the buttons
+        if self.selected:
+            self.add(self.highlight_color)
+        else:
+            self.add(Color(0.5, 0.5, 0.5))
+        self.add(self.outer_rec)
+        self.add(self.button_color)
+        self.add(self.inner_rec)
+        self.add(self.text_color)
+        self.add(self.text_rec)
+
+    def highlight(self):
+        self.remove(self.outer_rec)
+        self.add(self.highlight_color)
+        self.add(self.outer_rec)
+        self.selected = True
+
+    def unhighlight(self):
+        self.remove(self.outer_rec)
+        self.remove(self.inner_rec)
+        self.remove(self.text_rec)
+        self.add(self.button_color)
+        self.add(self.outer_rec)
+        self.add(self.inner_rec)
+        self.add(self.text_color)
+        self.add(self.text_rec)
+        self.selected = False
+
+    def on_update(self, dt):
+        if self.selected:
+            self.alpha += dt * self.direction
+            if self.alpha > 0.5:
+                self.alpha = 0.5
+                self.direction = -0.5
+            if self.alpha < 0:
+                self.alpha = 0
+                self.direction = 0.5
+            self.remove(self.outer_rec)
+            self.add(Color(rgba=(1, 1, 0, self.alpha)))
+            self.add(self.outer_rec)
+
         return True
 
 

@@ -23,6 +23,7 @@ class MainWidget(BaseWidget) :
 
         self.playing = False
         self.lifetime = 0
+        self.button = 1
         self.prev_time = time.time()
         self.new_time = time.time()
 
@@ -35,17 +36,19 @@ class MainWidget(BaseWidget) :
 
     def on_key_down(self, keycode, modifiers):
         if keycode[1] == 'p':  # PAUSE/PLAY
-            self.game_display.toggle()
-            self.audio_manager.toggle()
-            self.playing = not self.playing
+            if self.screen == "game":
+                self.game_display.toggle()
+                self.audio_manager.toggle()
+                self.playing = not self.playing
 
         # if keycode[1] == 't':
         #     self.game_data.transition()
         #     self.audio_manager.start_transition_song(self.game_data.audio_file_name)
 
         if keycode[1] == 'w':
-            self.audio_manager.play_jump_effect()
-            self.game_display.on_jump()
+            if self.screen == "game":
+                self.audio_manager.play_jump_effect()
+                self.game_display.on_jump()
 
         if keycode[1] == "m":
             if self.screen == "game":
@@ -70,6 +73,30 @@ class MainWidget(BaseWidget) :
                     self.anim_group.remove(self.menu_display)
                     self.anim_group.add(self.tutorial_display)
                     self.screen = "tutorial"
+
+        if keycode[1] == "up":
+            if self.screen == "menu":
+                self.button += 1
+                self.menu_display.highlight_button(1)
+
+        if keycode[1] == "down":
+            if self.screen == "menu":
+                self.button -= 1
+                self.menu_display.highlight_button(-1)
+
+        if keycode[1] == "enter":
+            if self.screen == "menu":
+                if self.button % 2 == 0:
+                    self.anim_group.remove(self.menu_display)
+                    self.anim_group.add(self.tutorial_display)
+                    self.screen = "tutorial"
+                if self.button % 2 == 1:
+                    self.anim_group.remove(self.menu_display)
+                    self.anim_group.add(self.game_display)
+                    self.screen = "game"
+            if self.screen == "tutorial":
+                print("give instructins")
+        
 
     def on_key_up(self, keycode):
         if keycode[1] == "w":
@@ -97,9 +124,7 @@ class MainWidget(BaseWidget) :
             self.label.text = "Tutorial Mode\n"
             self.label.text += "Press [m] to go back to the home screen"
         if self.screen == "menu":
-            self.label.text = "Home Screen\n"
-            self.label.text += "Press [t] for the tutorial\n"
-            self.label.text += "Press [1] for Level 1"
+            self.label.text = ""
         self.anim_group.on_update()
         self.audio_manager.on_update()
         self.game_display.update_frame(self.audio_manager.get_current_frame())
