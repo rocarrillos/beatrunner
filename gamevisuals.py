@@ -176,7 +176,7 @@ class Player(InstructionGroup):
             if collision:
                 self.fall_on = False
                 self.fall_vel = np.array((0, 0), dtype=np.float)
-                self.rect.texture = self.texture
+                if not self.jump_anim: self.rect.texture = self.texture
             elif self.get_pos()[1] > GROUND_Y and not self.jump_anim:
                 self.on_fall()
 
@@ -364,9 +364,8 @@ class ProgressBars(InstructionGroup):
     def __init__(self, text_label):
         super(ProgressBars, self).__init__()
         self.progress_bars = {}
-        self.bar_positions = [(3.9 * SCREEN_WIDTH / 5, SCREEN_HEIGHT * 0.8),
-                              (3.9 * SCREEN_WIDTH / 5, SCREEN_HEIGHT * 0.75),
-                              (3.9 * SCREEN_WIDTH / 5, SCREEN_HEIGHT * 0.7)]
+        self.bar_positions = {"RISER":(3.9 * SCREEN_WIDTH / 5, SCREEN_HEIGHT * 0.8),
+                              "FILTER":(3.9 * SCREEN_WIDTH / 5, SCREEN_HEIGHT * 0.75)}
         self.text_label = text_label
 
     # add a new bar - pass in a sample length, and the sound name to refer to it
@@ -377,7 +376,7 @@ class ProgressBars(InstructionGroup):
             wave_src (WaveGenerator): sound source 
             sound_name (string): label text
         """
-        new_bar = SoundProgressBar(duration, sound_name, self.bar_positions[len(self.progress_bars)])
+        new_bar = SoundProgressBar(duration, sound_name, self.bar_positions[sound_name])
         self.progress_bars[sound_name] = new_bar
         self.add(new_bar)
 
@@ -389,16 +388,20 @@ class ProgressBars(InstructionGroup):
         Returns:
             nothing
         """
-        self.progress_bars.pop(sound_name)
+        if sound_name in self.progress_bars:
+            self.remove(self.progress_bars[sound_name])
+            self.progress_bars.pop(sound_name)
 
     def on_update(self, dt):
         removed = []
         self.text_label.text = ""
-        for bar in self.progress_bars:
-            self.text_label.text += bar + "\n"
-            kept = self.progress_bars[bar].on_update(dt)
-            if not kept:
-                removed.append(bar)
+        for p_type in self.bar_positions:
+            self.text_label.text += p_type if p_type in self.progress_bars else ""
+            self.text_label.text += "\n"
+            if p_type in self.progress_bars:
+                kept = self.progress_bars[p_type].on_update(dt)
+                if not kept:
+                    removed.append(p_type)
         for r in removed:
             self.remove(self.progress_bars[r])
             self.progress_bars.pop(r)
@@ -438,13 +441,11 @@ class SoundProgressBar(InstructionGroup):
 
     def on_update(self, dt):
         self.dt += dt
-        self.remove(self.inside_color)
         self.remove(self.inside_rect)
         if self.dt * Audio.sample_rate / self.end_frame > 0.9:  # red
-            self.inside_color = RED
+            self.inside_color.r, self.inside_color.g, self.inside_color.b = 1,0,0
         elif self.dt * Audio.sample_rate / self.end_frame > 0.67:  # yellow
-            self.inside_color = YELLOW
-        self.add(self.inside_color)
+            self.inside_color.r, self.inside_color.g, self.inside_color.b = 1,1,0  # double refrence to yellow at certain places leads to color changing problems
         self.inside_rect.size = [int((self.dt * Audio.sample_rate / self.end_frame) * self.max_length), SCREEN_HEIGHT / 20 - 9]
         self.add(self.inside_rect)
         return not self.dt * Audio.sample_rate > self.end_frame
@@ -504,10 +505,10 @@ class MainProgressBar(InstructionGroup):
         self.current_song_progress_line.points = self.current_song_progress_line.points[:2]+[int(SCREEN_WIDTH/3) + new_line_length, self.current_song_progress_line.points[3]]
     
     def add_powerup(self):
-        if self.powerups_collected < 5:
+        if not self.can_transition():
             self.powerups_collected += 1
             self.inside_rect.size = [int(self.max_length * (self.level * 5 + self.powerups_collected)/15),SCREEN_HEIGHT / 15 - 9]
-            self.glow = self.powerups_collected >= 5
+            self.glow = self.can_transition()
             if self.trigger_glow_listener: self.trigger_glow_listener(self.glow)
 
     def add_level(self):
@@ -520,6 +521,9 @@ class MainProgressBar(InstructionGroup):
     def reset_song_frame(self, next_song_frame, next_song_length):
         self.song_frame = next_song_frame
         self.song_length = next_song_length
+
+    def can_transition(self):
+        return self.powerups_collected >= 5
 
 class BeatMatcher(InstructionGroup):
     def __init__(self, audio_manager, primary_speed, secondary_speed):
@@ -864,8 +868,10 @@ class GameDisplay(InstructionGroup):
         """
         y_pos = self.powerup_data[powerup][1]
         p_type = self.powerup_data[powerup][2]
-        if p_type == "transition" and self.main_bar.powerups_collected != 5:
-            return
+        print(p_type,self.main_bar.powerups_collected)
+
+        if p_type == "transition" and not self.main_bar.can_transition():
+            p_type = "reset"  # if you can't transition yet, just set the powerup to be a reset instead of a transition
         new_powerup = Powerup((SCREEN_WIDTH, self.index_to_y[y_pos-1] + GROUND_Y + BLOCK_HEIGHT), p_type, self.game_speed, self.powerup_listeners[p_type])
         self.powerups.add(new_powerup)
         self.add(new_powerup)
@@ -972,8 +978,10 @@ class GameDisplay(InstructionGroup):
                         player_y < powerup_y + POWERUP_LENGTH < player_y + PLAYER_HEIGHT:
                     if powerup.powerup_type == "sample_on" or powerup.powerup_type == "sample_off":
                         powerup.activate([[self.current_frame]])
-                    elif powerup.powerup_type == "riser" or powerup.powerup_type == "vocals_boost":
+                    elif powerup.powerup_type == "riser" or "boost" in powerup.powerup_type:
                         powerup.activate([[self.powerup_bars.add_bar]])
+                    elif powerup.powerup_type == "reset":
+                        powerup.activate([[self.powerup_bars.remove_bar],[]])
                     else:
                         powerup.activate()
                     return powerup

@@ -55,9 +55,10 @@ class AudioManager(object):
         
         self.active = False
 
-        # scoring data
-        self.transition_score_dict = {"riser":None, "filter":None, "raise_volume": None, "lower_volume": None,
-                                      "sample":None, "speedup":None}
+        # frame data for last transitions hit. used for determining token collection and bar management
+        self.transition_lasthit_dict = {"riser":None, "filter":None, "volume": None, "volume": None,
+                                      "sample":None, "speed":None}
+        self.ongoing_effects = []
         self.score = 0
         
     def toggle(self):
@@ -104,9 +105,11 @@ class AudioManager(object):
         self.sfx.noteoff(4, self.powerup_note)
 
     # MAIN TRACK EFFECTS
-    def bass_boost(self):
+    def bass_boost(self, add_bar=None):
         # self.primary_filter.change_pass("low")
         self.primary_song.set_filter("low")
+        self.transition_lasthit_dict["filter"] = self.get_current_frame()
+        if add_bar: add_bar(8*Audio.sample_rate, "FILTER")
 
     def reset_filter(self):
         # self.primary_filter.change_pass("reset")
@@ -115,7 +118,8 @@ class AudioManager(object):
     def vocals_boost(self, add_bar=None):
         # self.primary_filter.change_pass("high")
         self.primary_song.set_filter("high")
-        if add_bar: add_bar(8*Audio.sample_rate, "filter")
+        self.transition_lasthit_dict["filter"] = self.get_current_frame()
+        if add_bar: add_bar(8*Audio.sample_rate, "FILTER")
 
     def underwater(self):
         # self.primary_filter.change_pass("band")
@@ -124,8 +128,8 @@ class AudioManager(object):
     def riser(self, add_bar=None):
         riser = WaveGenerator(WaveFile("data/riser1.wav"))
         self.mixer.add(riser)
-        self.transition_score_dict["riser"] = self.get_current_frame()
-        if add_bar: add_bar(riser.get_length(), "riser")
+        self.transition_lasthit_dict["riser"] = self.get_current_frame()
+        if add_bar: add_bar(riser.get_length(), "RISER")
 
     def ethereal(self):
         pass
@@ -148,23 +152,25 @@ class AudioManager(object):
     # speedup the song and/or sampler
     def speedup(self):
         self.primary_song.set_speed(self.primary_song.get_speed() * 2**(1/12))
+        self.transition_lasthit_dict["speed"] = self.get_current_frame()
         self.score += 10
 
     # slow down the song and /or sampler
     def slowdown(self):
-        self.primary_song.set_speed(self.primary_song.get_speed() / 2**(1/12))        
+        self.primary_song.set_speed(self.primary_song.get_speed() / 2**(1/12))   
+        self.transition_lasthit_dict["speed"] = self.get_current_frame()     
         self.score += 10
 
     ###### SAMPLE EFFECTS #########
     # start the sample by retaining current frame
     def sample_on(self, frame):
         self.primary_song.set_sampling_on_frame(frame)
-        self.transition_score_dict["sample"] = self.get_current_frame()
-
     # end the sample by loading in an audio snippet from [sample_on to sample off]
     # add it to the mixer, and set the primary song gain to 0 (but keep it playing)
     def sample_off(self, frame):
         self.primary_song.set_sampling_off_frame(frame)
+        self.transition_lasthit_dict["sample"] = self.get_current_frame()
+
 
     # start the song transition. Here, init the new song as a WaveGenerator and add it to the mixer.
     def add_transition_song(self, audio_file):
@@ -189,9 +195,14 @@ class AudioManager(object):
     def reset_speed(self):
         self.primary_song.set_speed(1)
 
-    def reset(self):
+    def reset_filter(self, remove_bar=None):
+        self.primary_song.reset_filter()
+        if remove_bar: remove_bar("FILTER")
+
+    def reset(self, remove_bar=None):
         self.reset_speed()
         self.reset_sample()
+        self.reset_filter(remove_bar)
         
     def add_transition_token(self):
         pass
@@ -213,6 +224,9 @@ class AudioManager(object):
         #     sampler_score = int(100 * self.sample_on_frame/self.sample_off_frame)
         #     score += sampler_score
         return score
+
+    def get_ongoing_effects(self):
+        return 
 
     def on_update(self):
         if self.active:
@@ -301,6 +315,10 @@ class Song(object):
     def set_filter(self, filter_type):
         self.song_filter.set_filter(filter_type)
         if self.sampler_filter: self.sampler_filter.set_filter(filter_type)
+
+    def reset_filter(self):
+        self.song_filter.reset_filter()
+        if self.sampler_filter: self.sampler_filter.reset_filter()
 
     def get_frame(self):
         return self.wave_gen.frame
