@@ -36,17 +36,17 @@ PLAYER_WIDTH = int(SCREEN_HEIGHT / 10)
 
 POWERUP_LENGTH = int(SCREEN_WIDTH / 20)
 
-TEXTURES = {'vocals_boost': Image("img/mic.jpg").texture, 'bass_boost': Image("img/bass.jpg").texture,
+TEXTURES = {'vocals_boost': Image("img/high.png").texture, 'bass_boost': Image("img/low.png").texture,
             'powerup_note':Image("img/riser.png").texture,"lower_volume":Image("img/arrowdownred.png").texture,
             "raise_volume": Image("img/uparrowred.png").texture, "reset_filter":Image("img/reset_filter.png").texture,
             "reset_speed": Image("img/reset_speed.png").texture,"speedup":Image("img/speedup.png").texture,
-            "slowdown": Image("img/ice.jpg").texture,"reg_to_high":Image("img/sub.jpg").texture,
+            "slowdown": Image("img/ice.jpg").texture,"reg_to_high":Image("img/reg_to_high.png").texture,
             "sample_on": Image("img/sample_on.png").texture, "sample_off": Image("img/sample_off.png").texture,
             "reset_sample":Image("img/sample_off.png").texture, "start_transition": Image("img/green_spiral.png").texture,
             "end_transition": Image("img/red_spiral.png").texture, "riser":Image("img/riser.png").texture,
             "trophy": Image("img/trophy.png").texture, "danger": Image("img/skull.png").texture,
             "transition_token":Image("img/coin.png").texture, "transition":Image("img/transition_final.png").texture,
-            "reset": Image("img/reset_speed.png").texture}
+            "reset": Image("img/reset.png").texture}
 ## TODO: CHANGE THIS TO AN R IMAGE OR SOMEHINTG
 
 
@@ -323,7 +323,8 @@ class Powerup(InstructionGroup):
         self.powerup_type = powerup_type
         self.texture = TEXTURES[powerup_type]
         self.powerup = Rectangle(pos=self.pos, size=[POWERUP_LENGTH, POWERUP_LENGTH],texture=self.texture)
-        self.add(Color(1,1,1))
+        self.bg_color = Color(1,1,1)
+        self.add(self.bg_color)
         self.add(self.powerup)
         self.triggered = False
         self.activation_listeners = activation_listeners
@@ -335,6 +336,9 @@ class Powerup(InstructionGroup):
             self.powerup_type = "transition" if flag else "reset"
             self.powerup.texture = TEXTURES[self.powerup_type]
             set_listeners(self, self.powerup_type)
+
+    def set_glow_background(self, flag):
+        self.bg_color.b = 0 if flag else 1
 
     def on_update(self, dt):
         self.powerup.pos -= np.array([dt * self.speed, 0])
@@ -612,7 +616,7 @@ class BeatMatcher(InstructionGroup):
         diff = abs(2 * self.calculate_pos(self.audio_manager.get_secondary_bpm(), self.audio_manager.get_secondary_speed()) - 2 * self.calculate_pos(self.audio_manager.get_primary_bpm(), self.audio_manager.get_primary_speed()))
         self.remove(self.aimer)
         self.aimer = CEllipse(cpos=(self.x_pos + 2 * self.calculate_pos(self.audio_manager.get_primary_bpm(), self.audio_manager.get_primary_speed()), self.y_pos + 15), csize=(20, 20))
-        self.transition_possible = diff <= 5
+        self.transition_possible = diff <= 10
         self.add(GREEN if self.transition_possible else YELLOW)
         self.add(self.aimer)
         return True
@@ -792,7 +796,7 @@ class GameDisplay(InstructionGroup):
                                   'danger': [self.audio_manager.toggle, self.toggle, self.lose_game],
                                   'transition_token': [self.audio_manager.add_transition_token, self.main_bar.add_powerup],
                                   "transition": [self.data_audio_transition_listener],
-                                  "reset":[self.audio_manager.reset, self.main_bar.add_powerup, self.player.toggle_blue_glow]}
+                                  "reset":[self.audio_manager.reset, self.main_bar.add_powerup, self.player.toggle_blue_glow, self.reset_game_speed]}
 
         # game states
         self.paused = True
@@ -870,6 +874,8 @@ class GameDisplay(InstructionGroup):
 
             for powerup in self.powerups:
                 powerup.set_transition_or_reset(self.beatmatcher.can_transition() and self.main_bar.can_transition() and self.powerup_bars.can_transition(), self.set_activation_listeners)
+                if powerup.powerup_type == "reset":
+                    powerup.set_glow_background(self.audio_manager.enough_past_powerups())
                 if not powerup.on_update(dt):
                     removed_items.add(powerup)
             for item in removed_items:
@@ -1029,7 +1035,7 @@ class GameDisplay(InstructionGroup):
                     elif powerup.powerup_type == "riser" or "boost" in powerup.powerup_type:
                         powerup.activate([[self.powerup_bars.add_bar]])
                     elif powerup.powerup_type == "reset":
-                        powerup.activate([[self.powerup_bars.remove_bar],[self.audio_manager.enough_past_powerups()],[False]])
+                        powerup.activate([[self.powerup_bars.remove_bar],[self.audio_manager.enough_past_powerups()],[False],[]])
                     else:
                         powerup.activate()
                     return powerup

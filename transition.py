@@ -7,6 +7,7 @@ PLAYER_IMAGES = [["img/shark.png", "img/shark_jump.png","img/shark_fall.png"],["
 BLOCK_IMAGES = ["img/wav.png", "img/forest_block.png", "img/cloud.png"]
 GROUND_IMAGES = ["img/sand.png", "img/rock_ground.png", "img/blank.png"]
 BACKGROUND_IMAGES = ["img/ocean.jpg", "img/forest.jpg", "img/clouds.jpg"]
+SONG_NAMES = ["Baby Shark","Closer (Shaun \nFrank Remix)", "Mi Gente"]
 
 
 ##
@@ -31,6 +32,7 @@ class GameData(object):
         self.ground_image = GROUND_IMAGES[self.level]
         self.next_song_name = AUDIO_FILES[self.level + 1]
         self.bg_image = BACKGROUND_IMAGES[self.level]
+        self.song_name = SONG_NAMES[self.level]
 
     def get_song(self):
         return self.audio_file_name
@@ -48,3 +50,4 @@ class GameData(object):
         self.next_song_name = AUDIO_FILES[self.level + 1 ] if self.level < len(AUDIO_FILES) else None
 
         self.bg_image = BACKGROUND_IMAGES[self.level]
+        self.song_name = SONG_NAMES[self.level]

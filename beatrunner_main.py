@@ -90,7 +90,7 @@ class MainWidget(BaseWidget) :
         if self.screen == "game":
             self.label.text = "Level "+str(self.game_data.level + 1) + "\n"
             # Welcome to Beat Runner\n[p] play/pause [w] jump [t hold] transition\n
-            self.label.text += "Score: " + str(self.audio_manager.score) + "\n"
+            self.label.text += self.game_data.song_name + "\n"
             if not self.playing:
                 self.label.text += "Press P to play"
         if self.screen == "tutorial":
