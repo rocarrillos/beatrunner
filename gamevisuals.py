@@ -134,8 +134,8 @@ class Player(InstructionGroup):
         if not self.jump_anim and not self.fall_on:
             current_y = self.rect.pos[1]
             max_y = self.rect.pos[1] + int(7 * SCREEN_HEIGHT / 20)
-            slow_down_y_1 = self.rect.pos[1] + int(SCREEN_HEIGHT / 5)  # some hardcoded anims right here
-            slow_down_y_2 = self.rect.pos[1] + int(5 * SCREEN_HEIGHT / 20)
+            slow_down_y_1 = self.rect.pos[1] + int(SCREEN_HEIGHT / 5)  # some hardcoded anims right here 
+            slow_down_y_2 = self.rect.pos[1] + int(5 * SCREEN_HEIGHT / 20) # Justin Solomon would be proud
             slow_down_y_3 = self.rect.pos[1] + int(6.5 * SCREEN_HEIGHT/20)
             self.jump_anim = KFAnim((0,current_y), (0.25, slow_down_y_1), 
                                     (0.35, slow_down_y_2), (0.5, slow_down_y_3), (0.6, max_y))
@@ -691,20 +691,24 @@ class TutorialDisplay(InstructionGroup):
         self.message = 0
         self.description = 0  
         self.current_frame = 0
-        self.game_speed = 100
+        self.game_speed = INIT_RIGHT_SPEED
         self.last_powerup_bars_update = 0
         self.current_powerup = 0
         self.current_block = 0
         self.playing = True  
         self.block_data = []
         self.powerup_data = [
-            (2.5, 1, "vocals_boost"),
-            (3.5, 1, "lower_volume"),
+            (3.0, 1, "vocals_boost"),
+            (3.5, 1, "transition_token"),
+            (4.05, 1, "lower_volume"),
             (4.5, 1, "raise_volume"),
+            (5.0, 1, "transition_token"),
             (5.5, 1, "speedup"),
             (6.5, 2, "speedup"),
+            (7.0, 1, "transition_token"),
             (7.5, 2, "slowdown"),
             (8.5, 1, "reset"),
+            (9.0, 1, "transition_token"),
             (9.5, 2, "danger")
         ]
         self.blocks = []
@@ -770,7 +774,7 @@ class TutorialDisplay(InstructionGroup):
     def change_text(self):
         self.remove(self.message_rec)
         self.message += 1
-        message_label = CoreLabel(text=self.messages[self.message], font_size=56)
+        message_label = CoreLabel(text=self.messages[self.message] if self.message < len(self.messages) else "", font_size=56)
         message_label.refresh()
         self.message_rec = Rectangle(pos=(SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 3.5), size=(200,50), texture=message_label.texture)
         self.add(self.message_rec)
@@ -822,6 +826,14 @@ class TutorialDisplay(InstructionGroup):
                 self.add_powerup(self.current_powerup)
                 self.current_powerup += 1
         return True
+
+    def reset(self):
+        self.playing = False
+        self.message = 0
+        self.current_block = 0
+        self.current_frame = 0
+        self.current_powerup = 0
+        self.last_powerup_bars_update = 0
 
     def on_jump(self):
         self.player.on_jump()
@@ -999,6 +1011,7 @@ class GameDisplay(InstructionGroup):
 
         self.bg_color = Color(1,1,1)
         self.add(self.bg_color)
+        self.label = label
 
         self.background = Background()
         self.player = Player(listen_collision_above_blocks=self.listen_collision_above_block,
@@ -1055,6 +1068,9 @@ class GameDisplay(InstructionGroup):
         # transition tempo meter
         self.beatmatcher = BeatMatcher(self.audio_manager, 120, 90)
         self.add(self.beatmatcher)
+
+    def reset(self):
+        self.__init__(self.block_data, self.powerup_data, self.audio_manager, self.label, self.data_audio_transition_listener)
 
     # toggle paused of game or not
     def toggle(self):

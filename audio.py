@@ -31,6 +31,8 @@ class AudioManager(object):
         self.mixer.set_gain(1)
 
         # setup audio files
+        self.first_file = first_file
+        self.second_file = second_file
         self.primary_song = Song(first_file)
         self.secondary_song = Song(second_file)
 
@@ -60,6 +62,18 @@ class AudioManager(object):
                                       "sample":None, "speed":None}
         self.ongoing_effects = []
         self.score = 0
+
+    def restart(self):
+        self.primary_song = Song(self.first_file)
+        self.secondary_song = Song(self.second_file)
+        self.transitions = 0
+        self.mixer = Mixer()
+        self.mixer.add(self.sfx)
+        self.mixer.set_gain(1)
+        self.mixer.add(self.primary_song)
+        self.audio.set_generator(self.mixer)
+        self.score = 0
+        self.active = False
     
     def set_as_audio(self, audio):
         audio.set_generator(self.mixer)

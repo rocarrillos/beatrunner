@@ -59,11 +59,15 @@ class MainWidget(BaseWidget) :
                 if not self.playing:
                     self.anim_group.remove(self.game_display)
                     self.anim_group.add(self.menu_display)
+                    self.game_display = GameDisplay(self.song_data.blocks, self.song_data.powerups, self.audio_manager, self.other_label, self.handle_transition)
+                    self.audio_manager.restart()
+                    self.playing = False
                     self.screen = "menu"
             if self.screen == "tutorial":
                 self.anim_group.remove(self.tutorial_display)
                 self.anim_group.add(self.menu_display)
-                self.tutorial_audio_manager.toggle() 
+                self.tutorial_display = TutorialDisplay(self.song_data.blocks, self.song_data.powerups, self.audio_manager,  self.other_label, self)
+                self.tutorial_audio_manager.restart() 
                 self.screen = "menu"
 
         if keycode[1] == "1":
@@ -108,7 +112,7 @@ class MainWidget(BaseWidget) :
                     self.audio_manager.set_as_audio(self.audio)
                     self.screen = "game"
             if self.screen == "tutorial":
-                print("give instructions")
+                self.tutorial_display.change_text()
         
 
     def on_key_up(self, keycode):
