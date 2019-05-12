@@ -488,7 +488,7 @@ class MainProgressBar(InstructionGroup):
     def __init__(self, song_length, trigger_glow_listener=None):
         super(MainProgressBar, self).__init__()
         self.pos = np.array([int(SCREEN_WIDTH/3), int(0.9*SCREEN_HEIGHT)])
-        self.outside_color = WHITE
+        self.outside_color = Color(1,1,1,1)
         self.outside_rect = Rectangle(pos=self.pos, size=[SCREEN_WIDTH / 3, SCREEN_HEIGHT / 15 - 5])
         self.inside_color = Color(1,1,0)  # will changing inside_color in glow_anim change global YELLOW?
         self.inside_rect = Rectangle(pos=self.pos + np.array([2, 2]), size=[0, SCREEN_HEIGHT / 15 - 9])
@@ -520,8 +520,13 @@ class MainProgressBar(InstructionGroup):
         self.glow_anim = KFAnim((0,0),(0.3, 0.8),(0.6,0))
         self.glow_dt = 0
         self.trigger_glow_listener=trigger_glow_listener
+        self.a_anim = KFAnim((0,1),(0.3,0.5),(0.6,1))
+        self.a_anim_dt = 0
 
     def on_glow_update(self, dt):
+        if self.can_transition():
+            self.outside_color.a = self.a_anim.eval(self.a_anim_dt % 0.6) if self.can_transition() else 1
+            self.a_anim_dt += dt
         if self.glow:
             b_value = self.glow_anim.eval(self.glow_dt % 0.6)
             self.inside_color.b = b_value
@@ -581,6 +586,8 @@ class BeatMatcher(InstructionGroup):
         self.add(self.aimer)
 
         self.transition = False
+        self.a_anim = KFAnim((0,0.75),(0.3, 0.3),(0.6,0.75))
+        self.a_anim_dt = 0
 
     def calculate_pos(self, bpm, base_speed):
         if base_speed > 2: 
@@ -600,6 +607,8 @@ class BeatMatcher(InstructionGroup):
         self.add(self.aimer)
 
     def on_update(self, dt):
+        self.color.a = self.a_anim.eval(self.a_anim_dt % 0.6) if self.transition else 0.75
+        self.a_anim_dt += dt
         diff = abs(2 * self.calculate_pos(self.audio_manager.get_secondary_bpm(), self.audio_manager.get_secondary_speed()) - 2 * self.calculate_pos(self.audio_manager.get_primary_bpm(), self.audio_manager.get_primary_speed()))
         self.remove(self.aimer)
         self.aimer = CEllipse(cpos=(self.x_pos + 2 * self.calculate_pos(self.audio_manager.get_primary_bpm(), self.audio_manager.get_primary_speed()), self.y_pos + 15), csize=(20, 20))
