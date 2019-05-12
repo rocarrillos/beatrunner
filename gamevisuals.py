@@ -526,6 +526,7 @@ class MainProgressBar(InstructionGroup):
     def can_transition(self):
         return self.powerups_collected >= 5
 
+
 class BeatMatcher(InstructionGroup):
     def __init__(self, audio_manager, primary_speed, secondary_speed):
         super(BeatMatcher, self).__init__()
@@ -616,6 +617,7 @@ class MenuDisplay(InstructionGroup):
             button.on_update(dt)
         return True
 
+
 class MenuButton(InstructionGroup):
     def __init__(self, labeltext, offset, selected=False):
         super(MenuButton, self).__init__()
@@ -679,7 +681,7 @@ class MenuButton(InstructionGroup):
 
 
 class TutorialDisplay(InstructionGroup):
-    def __init__(self, block_data, powerup_data, audio_manager, game_engine):
+    def __init__(self, block_data, powerup_data, audio_manager, label, game_engine):
         super(TutorialDisplay, self).__init__()
         self.color = GREEN
         self.game_engine = game_engine
@@ -696,15 +698,14 @@ class TutorialDisplay(InstructionGroup):
         self.playing = True  
         self.block_data = []
         self.powerup_data = [
-            (2.5, 1, "transition_token"),
-            (3.0, 1, "lower_volume"),
-            (4.0, 1, "raise_volume"),
-            (5.0, 1, "transition_token"),
-            (6.0, 2, "speedup"),
-            (6.5, 2, "slowdown"),
-            (7.5, 1, "transition_token"),
-            (8.5, 1, "danger"),
-            (9.5, 1, "win_game")
+            (2.5, 1, "vocals_boost"),
+            (3.5, 1, "lower_volume"),
+            (4.5, 1, "raise_volume"),
+            (5.5, 1, "speedup"),
+            (6.5, 2, "speedup"),
+            (7.5, 2, "slowdown"),
+            (8.5, 1, "reset"),
+            (9.5, 2, "danger")
         ]
         self.blocks = []
         self.powerups = []
@@ -717,6 +718,11 @@ class TutorialDisplay(InstructionGroup):
         self.add(self.main_bar)
         self.ground = Ground()
         self.add(self.ground)
+        
+        self.powerup_bars = ProgressBars(label)
+        self.add(self.powerup_bars)
+        self.last_powerup_bars_update = 0
+
         self.beatmatcher = BeatMatcher(self.audio_manager, 120, 90)
         self.add(self.beatmatcher)
         self.index_to_y = [0, int(SCREEN_HEIGHT/5), int(SCREEN_HEIGHT * 2/5), int(SCREEN_HEIGHT*3/5)]  # maps block/powerup indices to y coords
@@ -791,6 +797,8 @@ class TutorialDisplay(InstructionGroup):
 
             for powerup in self.powerups:
                 if not powerup.on_update(dt):
+                    if powerup.powerup_type == "danger":
+                        self.win_game()
                     removed_items.add(powerup)
             for item in removed_items:
                 self.remove(item)
@@ -827,9 +835,20 @@ class TutorialDisplay(InstructionGroup):
     def win_game(self):
         self.game_engine.anim_group.remove(self)
         self.game_engine.anim_group.add(self.game_engine.menu_display)
+        self.game_engine.screen = "menu"
+        self.toggle()
+        self.game_engine.tutorial_audio_manager.toggle()
 
     def lose_game(self):
         pass
+
+    def update_frame(self, frame):
+        """
+        Updates the current frame.
+        Arguments:
+            frame (int): frame to set game frame to
+        """
+        self.current_frame = frame
 
     def add_powerup(self, powerup):
         """

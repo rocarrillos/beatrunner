@@ -21,13 +21,13 @@ import math
 
 
 class AudioManager(object):
-    def __init__(self, first_file, second_file):
+    def __init__(self, audio, first_file, second_file):
         super(AudioManager, self).__init__()
-        self.audio = Audio(2)
+        self.audio = audio
         self.mixer = Mixer()
         self.sfx = Synth("data/FluidR3_GM.sf2")
         self.mixer.add(self.sfx)
-        self.audio.set_generator(self.mixer)
+        
         self.mixer.set_gain(1)
 
         # setup audio files
@@ -60,6 +60,9 @@ class AudioManager(object):
                                       "sample":None, "speed":None}
         self.ongoing_effects = []
         self.score = 0
+    
+    def set_as_audio(self, audio):
+        audio.set_generator(self.mixer)
         
     def toggle(self):
         self.active = not self.active
