@@ -124,9 +124,9 @@ class AudioManager(object):
         self.transition_lasthit_dict["filter"] = self.get_current_frame()
         if add_bar: add_bar(8*Audio.sample_rate, "FILTER")
 
-    def underwater(self):
+    def reg_to_high_boost(self):
         # self.primary_filter.change_pass("band")
-        self.primary_song.change_pass("band")
+        self.primary_song.set_filter("reg_to_high")
 
     def riser(self, add_bar=None):
         riser = WaveGenerator(WaveFile("data/riser1.wav"))

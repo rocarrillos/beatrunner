@@ -40,7 +40,7 @@ TEXTURES = {'vocals_boost': Image("img/mic.jpg").texture, 'bass_boost': Image("i
             'powerup_note':Image("img/riser.png").texture,"lower_volume":Image("img/arrowdownred.png").texture,
             "raise_volume": Image("img/uparrowred.png").texture, "reset_filter":Image("img/reset_filter.png").texture,
             "reset_speed": Image("img/reset_speed.png").texture,"speedup":Image("img/speedup.png").texture,
-            "slowdown": Image("img/ice.jpg").texture,"underwater":Image("img/sub.jpg").texture,
+            "slowdown": Image("img/ice.jpg").texture,"reg_to_high":Image("img/sub.jpg").texture,
             "sample_on": Image("img/sample_on.png").texture, "sample_off": Image("img/sample_off.png").texture,
             "reset_sample":Image("img/sample_off.png").texture, "start_transition": Image("img/green_spiral.png").texture,
             "end_transition": Image("img/red_spiral.png").texture, "riser":Image("img/riser.png").texture,
@@ -585,7 +585,7 @@ class BeatMatcher(InstructionGroup):
         self.add(YELLOW)
         self.add(self.aimer)
 
-        self.transition = False
+        self.transition_possible = False
         self.a_anim = KFAnim((0,0.75),(0.3, 0.3),(0.6,0.75))
         self.a_anim_dt = 0
 
@@ -607,18 +607,18 @@ class BeatMatcher(InstructionGroup):
         self.add(self.aimer)
 
     def on_update(self, dt):
-        self.color.a = self.a_anim.eval(self.a_anim_dt % 0.6) if self.transition else 0.75
+        self.color.a = self.a_anim.eval(self.a_anim_dt % 0.6) if self.transition_possible else 0.75
         self.a_anim_dt += dt
         diff = abs(2 * self.calculate_pos(self.audio_manager.get_secondary_bpm(), self.audio_manager.get_secondary_speed()) - 2 * self.calculate_pos(self.audio_manager.get_primary_bpm(), self.audio_manager.get_primary_speed()))
         self.remove(self.aimer)
         self.aimer = CEllipse(cpos=(self.x_pos + 2 * self.calculate_pos(self.audio_manager.get_primary_bpm(), self.audio_manager.get_primary_speed()), self.y_pos + 15), csize=(20, 20))
-        self.transition = diff <= 5
-        self.add(GREEN if self.transition else YELLOW)
+        self.transition_possible = diff <= 5
+        self.add(GREEN if self.transition_possible else YELLOW)
         self.add(self.aimer)
         return True
 
     def can_transition(self):
-        return self.transition
+        return self.transition_possible
 
 
 class MenuDisplay(InstructionGroup):
@@ -780,7 +780,7 @@ class GameDisplay(InstructionGroup):
                                   'bass_boost': [self.audio_manager.bass_boost],
                                   'vocals_boost': [self.audio_manager.vocals_boost],
                                   'reset_filter': [self.audio_manager.reset_filter],
-                                  'underwater': [self.audio_manager.underwater],
+                                  'reg_to_high': [self.audio_manager.reg_to_high_boost],
                                   'speedup': [self.audio_manager.speedup, self.increase_game_speed],
                                   'slowdown': [self.audio_manager.slowdown, self.decrease_game_speed],
                                   'reset_speed': [self.audio_manager.reset_speed, self.reset_game_speed],
