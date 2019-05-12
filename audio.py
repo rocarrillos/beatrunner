@@ -394,6 +394,7 @@ class FilterMixer(object):
         if self.low: self.low.set_speed(new_speed)
 
     def set_filter(self, f_type):
+        self.reset_filter()
         self.f_type = f_type
         if f_type == "high":
             self.high = SpeedModulator(WaveGenerator(
