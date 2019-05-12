@@ -91,6 +91,7 @@ class Player(InstructionGroup):
         self.jump_texture = Image('img/shark_jump.png').texture
         self.fall_texture = Image('img/shark_fall.png').texture
         self.glow_color = Color(1,1,1)
+        self.blue_glow_color = Color(0,0.3,1)
         self.add(self.glow_color)
         self.rect = Rectangle(pos=self.pos, size=(PLAYER_WIDTH, PLAYER_HEIGHT), texture=self.texture)
         self.add(self.rect)
@@ -110,6 +111,10 @@ class Player(InstructionGroup):
         self.glow = False
         self.glow_anim = KFAnim((0, 1), (0.3, 0.5), (0.6, 1))
         self.glow_dt = 0
+
+        self.blue_glow = False
+        self.blue_glow_anim = KFAnim((0, 1), (0.3, 0.5), (0.6, 1))
+        self.blue_glow_dt = 0
 
     def get_pos(self):
         """
@@ -147,15 +152,29 @@ class Player(InstructionGroup):
         self.fall_on = True
         self.rect.texture = self.fall_texture
 
-    def toggle_glow(self, glow):
+    def toggle_blue_glow(self, glow):
+        if glow != self.blue_glow:
+            self.blue_glow = glow
+            if not self.blue_glow:
+                self.glow_color.r, self.glow_color.g, self.glow_color.b = (1,1,1) if not self.glow else (1,1,0)
+            else:
+                self.glow_color.r, self.glow_color.g, self.glow_color.b = 0,0.6,1
+            
+
+    def toggle_glow(self, glow, glow_colors=(1,1,0)):
         self.glow = glow
-        if not self.glow:
-            self.glow_color.b = 1
+        if not self.glow and not self.blue_glow:
+            self.glow_color.r, self.glow_color.g, self.glow_color.b = 1,1,1
+        elif not self.blue_glow:
+            self.glow_color.r, self.glow_color.g, self.glow_color.b = glow_colors
 
     def on_update(self, dt):
-        if self.glow:
+        if self.glow or self.blue_glow:
             b_value = self.glow_anim.eval(self.glow_dt % 0.6)
-            self.glow_color.b = b_value
+            if self.blue_glow:
+                self.glow_color.g = b_value
+            else:
+                self.glow_color.b = b_value
             self.glow_dt += dt
 
         if self.jump_anim:
@@ -309,6 +328,13 @@ class Powerup(InstructionGroup):
         self.triggered = False
         self.activation_listeners = activation_listeners
         self.speed = speed
+        
+
+    def set_transition_or_reset(self, flag, set_listeners):
+        if self.powerup_type in ("reset","transition"):
+            self.powerup_type = "transition" if flag else "reset"
+            self.powerup.texture = TEXTURES[self.powerup_type]
+            set_listeners(self, self.powerup_type)
 
     def on_update(self, dt):
         self.powerup.pos -= np.array([dt * self.speed, 0])
@@ -392,6 +418,9 @@ class ProgressBars(InstructionGroup):
             self.remove(self.progress_bars[sound_name])
             self.progress_bars.pop(sound_name)
 
+    def can_transition(self):
+        return len(self.progress_bars) > 0
+
     def on_update(self, dt):
         removed = []
         self.text_label.text = ""
@@ -459,7 +488,7 @@ class MainProgressBar(InstructionGroup):
     def __init__(self, song_length, trigger_glow_listener=None):
         super(MainProgressBar, self).__init__()
         self.pos = np.array([int(SCREEN_WIDTH/3), int(0.9*SCREEN_HEIGHT)])
-        self.outside_color = WHITE
+        self.outside_color = Color(1,1,1,1)
         self.outside_rect = Rectangle(pos=self.pos, size=[SCREEN_WIDTH / 3, SCREEN_HEIGHT / 15 - 5])
         self.inside_color = Color(1,1,0)  # will changing inside_color in glow_anim change global YELLOW?
         self.inside_rect = Rectangle(pos=self.pos + np.array([2, 2]), size=[0, SCREEN_HEIGHT / 15 - 9])
@@ -491,8 +520,13 @@ class MainProgressBar(InstructionGroup):
         self.glow_anim = KFAnim((0,0),(0.3, 0.8),(0.6,0))
         self.glow_dt = 0
         self.trigger_glow_listener=trigger_glow_listener
+        self.a_anim = KFAnim((0,1),(0.3,0.5),(0.6,1))
+        self.a_anim_dt = 0
 
     def on_glow_update(self, dt):
+        if self.can_transition():
+            self.outside_color.a = self.a_anim.eval(self.a_anim_dt % 0.6) if self.can_transition() else 1
+            self.a_anim_dt += dt
         if self.glow:
             b_value = self.glow_anim.eval(self.glow_dt % 0.6)
             self.inside_color.b = b_value
@@ -504,10 +538,10 @@ class MainProgressBar(InstructionGroup):
         new_line_length = int((self.song_frame / self.song_length) * self.max_length)
         self.current_song_progress_line.points = self.current_song_progress_line.points[:2]+[int(SCREEN_WIDTH/3) + new_line_length, self.current_song_progress_line.points[3]]
     
-    def add_powerup(self):
+    def add_powerup(self, can_add=True):
         if not self.can_transition():
-            self.powerups_collected += 1
-            self.inside_rect.size = [int(self.max_length * (self.level * 5 + self.powerups_collected)/15),SCREEN_HEIGHT / 15 - 9]
+            if can_add: self.powerups_collected += 1
+            self.inside_rect.size = [int(self.max_length * (self.level * 2 + self.powerups_collected)/6),SCREEN_HEIGHT / 15 - 9]
             self.glow = self.can_transition()
             if self.trigger_glow_listener: self.trigger_glow_listener(self.glow)
 
@@ -523,7 +557,8 @@ class MainProgressBar(InstructionGroup):
         self.song_length = next_song_length
 
     def can_transition(self):
-        return self.powerups_collected >= 5
+        return self.powerups_collected >= 2
+
 
 class BeatMatcher(InstructionGroup):
     def __init__(self, audio_manager, primary_speed, secondary_speed):
@@ -547,8 +582,12 @@ class BeatMatcher(InstructionGroup):
         self.add(RED)
         self.add(self.target)
         self.aimer = CEllipse(cpos=(self.x_pos + (self.width / self.base) * self.calculate_pos(self.audio_manager.get_primary_bpm(), self.audio_manager.get_primary_speed()), self.y_pos + 15), csize=(20, 20))
-        self.add(GREEN)
+        self.add(YELLOW)
         self.add(self.aimer)
+
+        self.transition = False
+        self.a_anim = KFAnim((0,0.75),(0.3, 0.3),(0.6,0.75))
+        self.a_anim_dt = 0
 
     def calculate_pos(self, bpm, base_speed):
         if base_speed > 2: 
@@ -568,15 +607,18 @@ class BeatMatcher(InstructionGroup):
         self.add(self.aimer)
 
     def on_update(self, dt):
+        self.color.a = self.a_anim.eval(self.a_anim_dt % 0.6) if self.transition else 0.75
+        self.a_anim_dt += dt
         diff = abs(2 * self.calculate_pos(self.audio_manager.get_secondary_bpm(), self.audio_manager.get_secondary_speed()) - 2 * self.calculate_pos(self.audio_manager.get_primary_bpm(), self.audio_manager.get_primary_speed()))
         self.remove(self.aimer)
         self.aimer = CEllipse(cpos=(self.x_pos + 2 * self.calculate_pos(self.audio_manager.get_primary_bpm(), self.audio_manager.get_primary_speed()), self.y_pos + 15), csize=(20, 20))
-        if diff <= 5:
-            self.add(YELLOW)
-        else:
-            self.add(GREEN)
+        self.transition = diff <= 5
+        self.add(GREEN if self.transition else YELLOW)
         self.add(self.aimer)
         return True
+
+    def can_transition(self):
+        return self.transition
 
 
 class MenuDisplay(InstructionGroup):
@@ -683,6 +725,8 @@ class TutorialDisplay(InstructionGroup):
                         powerup.activate()
                     return powerup
         return None
+
+
 ##
 # WRAPPER CLASS FOR THE GAME DISPLAY
 # args: song_data, powerup_data: annotations indicating where blocks and powerups should be, respectively.
@@ -748,7 +792,7 @@ class GameDisplay(InstructionGroup):
                                   'danger': [self.audio_manager.toggle, self.toggle, self.lose_game],
                                   'transition_token': [self.audio_manager.add_transition_token, self.main_bar.add_powerup],
                                   "transition": [self.data_audio_transition_listener],
-                                  "reset":[self.audio_manager.reset, self.main_bar.add_powerup]}
+                                  "reset":[self.audio_manager.reset, self.main_bar.add_powerup, self.player.toggle_blue_glow]}
 
         # game states
         self.paused = True
@@ -799,10 +843,14 @@ class GameDisplay(InstructionGroup):
         """
         self.add(Rectangle(pos=(0, 0), size=[SCREEN_WIDTH, SCREEN_HEIGHT]))
 
+    def set_activation_listeners(self, powerup, new_p_type):
+        powerup.activation_listeners = self.powerup_listeners[new_p_type]
+
     # call every frame to make blocks and powerups flow towards player
     def on_update(self, dt):
         if not self.paused:
             self.player.on_update(dt)
+            self.player.toggle_blue_glow(self.audio_manager.enough_past_powerups())
             self.main_bar.on_glow_update(dt)
             self.beatmatcher.on_update(dt)
             if abs(self.current_frame - self.last_powerup_bars_update) > Audio.sample_rate / 2:
@@ -821,6 +869,7 @@ class GameDisplay(InstructionGroup):
                     removed_items.add(block)
 
             for powerup in self.powerups:
+                powerup.set_transition_or_reset(self.beatmatcher.can_transition() and self.main_bar.can_transition() and self.powerup_bars.can_transition(), self.set_activation_listeners)
                 if not powerup.on_update(dt):
                     removed_items.add(powerup)
             for item in removed_items:
@@ -868,7 +917,6 @@ class GameDisplay(InstructionGroup):
         """
         y_pos = self.powerup_data[powerup][1]
         p_type = self.powerup_data[powerup][2]
-        print(p_type,self.main_bar.powerups_collected)
 
         if p_type == "transition" and not self.main_bar.can_transition():
             p_type = "reset"  # if you can't transition yet, just set the powerup to be a reset instead of a transition
@@ -981,7 +1029,7 @@ class GameDisplay(InstructionGroup):
                     elif powerup.powerup_type == "riser" or "boost" in powerup.powerup_type:
                         powerup.activate([[self.powerup_bars.add_bar]])
                     elif powerup.powerup_type == "reset":
-                        powerup.activate([[self.powerup_bars.remove_bar],[]])
+                        powerup.activate([[self.powerup_bars.remove_bar],[self.audio_manager.enough_past_powerups()],[False]])
                     else:
                         powerup.activate()
                     return powerup

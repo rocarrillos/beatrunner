@@ -56,8 +56,11 @@ class AudioManager(object):
         self.active = False
 
         # frame data for last transitions hit. used for determining token collection and bar management
-        self.transition_lasthit_dict = {"riser":None, "filter":None, "volume": None, "volume": None,
-                                      "sample":None, "speed":None}
+        self.transition_lasthit_dict = {"riser":-1000000, "filter":-1000000, "volume": -1000000,
+                                      "sample":-1000000, "speed":-1000000}
+
+        self.transition_expiration_dict={"riser":9*Audio.sample_rate, "filter":8.5*Audio.sample_rate, "volume":3*Audio.sample_rate,
+                                        "sample":3*Audio.sample_rate, "speed":3*Audio.sample_rate}
         self.ongoing_effects = []
         self.score = 0
         
@@ -228,6 +231,14 @@ class AudioManager(object):
     def get_ongoing_effects(self):
         return 
 
+    def enough_past_powerups(self):
+        c_frame = self.get_current_frame()
+        past = 0
+        for t in self.transition_lasthit_dict:
+            if c_frame - self.transition_lasthit_dict[t] < self.transition_expiration_dict[t]:
+                past += 1
+        return past >= 2
+
     def on_update(self):
         if self.active:
             self.audio.on_update()
@@ -369,7 +380,6 @@ class FilterMixer(object):
         local_frame_secs = (self.frame - self.filter_frame_on) / Audio.sample_rate
         if self.f_type == "reg_to_high":
             # TODO(clhsu): gain setting here for dynamic filtering. Call self.frame
-            print(self.reg_to_anim.eval(local_frame_secs), [m.get_gain() for m in self.mixer.generators])
             self.high.set_gain(self.reg_to_anim.eval(local_frame_secs))
             self.regular.set_gain(1 - self.reg_to_anim.eval(local_frame_secs))
         elif self.f_type == "reg_to_low":
