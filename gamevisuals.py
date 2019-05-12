@@ -91,6 +91,7 @@ class Player(InstructionGroup):
         self.jump_texture = Image('img/shark_jump.png').texture
         self.fall_texture = Image('img/shark_fall.png').texture
         self.glow_color = Color(1,1,1)
+        self.blue_glow_color = Color(0,0.3,1)
         self.add(self.glow_color)
         self.rect = Rectangle(pos=self.pos, size=(PLAYER_WIDTH, PLAYER_HEIGHT), texture=self.texture)
         self.add(self.rect)
@@ -110,6 +111,10 @@ class Player(InstructionGroup):
         self.glow = False
         self.glow_anim = KFAnim((0, 1), (0.3, 0.5), (0.6, 1))
         self.glow_dt = 0
+
+        self.blue_glow = False
+        self.blue_glow_anim = KFAnim((0, 1), (0.3, 0.5), (0.6, 1))
+        self.blue_glow_dt = 0
 
     def get_pos(self):
         """
@@ -147,17 +152,29 @@ class Player(InstructionGroup):
         self.fall_on = True
         self.rect.texture = self.fall_texture
 
+    def toggle_blue_glow(self, glow):
+        if glow != self.blue_glow:
+            self.blue_glow = glow
+            if not self.blue_glow:
+                self.glow_color.r, self.glow_color.g, self.glow_color.b = (1,1,1) if not self.glow else (1,1,0)
+            else:
+                self.glow_color.r, self.glow_color.g, self.glow_color.b = 0,0.6,1
+            
+
     def toggle_glow(self, glow, glow_colors=(1,1,0)):
         self.glow = glow
-        if not self.glow:
+        if not self.glow and not self.blue_glow:
             self.glow_color.r, self.glow_color.g, self.glow_color.b = 1,1,1
-        else:
+        elif not self.blue_glow:
             self.glow_color.r, self.glow_color.g, self.glow_color.b = glow_colors
 
     def on_update(self, dt):
-        if self.glow:
+        if self.glow or self.blue_glow:
             b_value = self.glow_anim.eval(self.glow_dt % 0.6)
-            self.glow_color.b = b_value
+            if self.blue_glow:
+                self.glow_color.g = b_value
+            else:
+                self.glow_color.b = b_value
             self.glow_dt += dt
 
         if self.jump_anim:
@@ -311,6 +328,13 @@ class Powerup(InstructionGroup):
         self.triggered = False
         self.activation_listeners = activation_listeners
         self.speed = speed
+        
+
+    def set_transition_or_reset(self, flag, set_listeners):
+        if self.powerup_type in ("reset","transition"):
+            self.powerup_type = "transition" if flag else "reset"
+            self.powerup.texture = TEXTURES[self.powerup_type]
+            set_listeners(self, self.powerup_type)
 
     def on_update(self, dt):
         self.powerup.pos -= np.array([dt * self.speed, 0])
@@ -393,6 +417,9 @@ class ProgressBars(InstructionGroup):
         if sound_name in self.progress_bars:
             self.remove(self.progress_bars[sound_name])
             self.progress_bars.pop(sound_name)
+
+    def can_transition(self):
+        return len(self.progress_bars) > 0
 
     def on_update(self, dt):
         removed = []
@@ -553,7 +580,7 @@ class BeatMatcher(InstructionGroup):
         self.add(YELLOW)
         self.add(self.aimer)
 
-        self.can_transition = False
+        self.transition = False
 
     def calculate_pos(self, bpm, base_speed):
         if base_speed > 2: 
@@ -576,10 +603,13 @@ class BeatMatcher(InstructionGroup):
         diff = abs(2 * self.calculate_pos(self.audio_manager.get_secondary_bpm(), self.audio_manager.get_secondary_speed()) - 2 * self.calculate_pos(self.audio_manager.get_primary_bpm(), self.audio_manager.get_primary_speed()))
         self.remove(self.aimer)
         self.aimer = CEllipse(cpos=(self.x_pos + 2 * self.calculate_pos(self.audio_manager.get_primary_bpm(), self.audio_manager.get_primary_speed()), self.y_pos + 15), csize=(20, 20))
-        self.can_transition = diff <= 5
-        self.add(GREEN if self.can_transition else YELLOW)
+        self.transition = diff <= 5
+        self.add(GREEN if self.transition else YELLOW)
         self.add(self.aimer)
         return True
+
+    def can_transition(self):
+        return self.transition
 
 
 class MenuDisplay(InstructionGroup):
@@ -686,6 +716,8 @@ class TutorialDisplay(InstructionGroup):
                         powerup.activate()
                     return powerup
         return None
+
+
 ##
 # WRAPPER CLASS FOR THE GAME DISPLAY
 # args: song_data, powerup_data: annotations indicating where blocks and powerups should be, respectively.
@@ -751,7 +783,7 @@ class GameDisplay(InstructionGroup):
                                   'danger': [self.audio_manager.toggle, self.toggle, self.lose_game],
                                   'transition_token': [self.audio_manager.add_transition_token, self.main_bar.add_powerup],
                                   "transition": [self.data_audio_transition_listener],
-                                  "reset":[self.audio_manager.reset, self.main_bar.add_powerup, self.player.toggle_glow]}
+                                  "reset":[self.audio_manager.reset, self.main_bar.add_powerup, self.player.toggle_blue_glow]}
 
         # game states
         self.paused = True
@@ -802,11 +834,14 @@ class GameDisplay(InstructionGroup):
         """
         self.add(Rectangle(pos=(0, 0), size=[SCREEN_WIDTH, SCREEN_HEIGHT]))
 
+    def set_activation_listeners(self, powerup, new_p_type):
+        powerup.activation_listeners = self.powerup_listeners[new_p_type]
+
     # call every frame to make blocks and powerups flow towards player
     def on_update(self, dt):
         if not self.paused:
             self.player.on_update(dt)
-            self.player.toggle_glow(self.audio_manager.enough_past_powerups(), (0,0.4,1))
+            self.player.toggle_blue_glow(self.audio_manager.enough_past_powerups())
             self.main_bar.on_glow_update(dt)
             self.beatmatcher.on_update(dt)
             if abs(self.current_frame - self.last_powerup_bars_update) > Audio.sample_rate / 2:
@@ -825,6 +860,7 @@ class GameDisplay(InstructionGroup):
                     removed_items.add(block)
 
             for powerup in self.powerups:
+                powerup.set_transition_or_reset(self.beatmatcher.can_transition() and self.main_bar.can_transition() and self.powerup_bars.can_transition(), self.set_activation_listeners)
                 if not powerup.on_update(dt):
                     removed_items.add(powerup)
             for item in removed_items:
