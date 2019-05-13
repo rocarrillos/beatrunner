@@ -11,6 +11,7 @@ from kivy.core.window import Window
 from kivy.graphics.instructions import InstructionGroup
 from kivy.graphics import Color, Ellipse, Line, Rectangle
 from kivy.core.image import Image
+from kivy.core.text import Label as CoreLabel
 
 import random
 import numpy as np
@@ -138,8 +139,8 @@ class Player(InstructionGroup):
         if not self.jump_anim and not self.fall_on:
             current_y = self.rect.pos[1]
             max_y = self.rect.pos[1] + int(7 * SCREEN_HEIGHT / 20)
-            slow_down_y_1 = self.rect.pos[1] + int(SCREEN_HEIGHT / 5)  # some hardcoded anims right here
-            slow_down_y_2 = self.rect.pos[1] + int(5 * SCREEN_HEIGHT / 20)
+            slow_down_y_1 = self.rect.pos[1] + int(SCREEN_HEIGHT / 5)  # some hardcoded anims right here 
+            slow_down_y_2 = self.rect.pos[1] + int(5 * SCREEN_HEIGHT / 20) # Justin Solomon would be proud
             slow_down_y_3 = self.rect.pos[1] + int(6.5 * SCREEN_HEIGHT/20)
             self.jump_anim = KFAnim((0,current_y), (0.25, slow_down_y_1), 
                                     (0.35, slow_down_y_2), (0.5, slow_down_y_3), (0.6, max_y))
@@ -565,6 +566,7 @@ class MainProgressBar(InstructionGroup):
         return self.powerups_collected >= 2
 
 
+
 class BeatMatcher(InstructionGroup):
     def __init__(self, audio_manager, primary_speed, secondary_speed):
         super(BeatMatcher, self).__init__()
@@ -629,31 +631,297 @@ class BeatMatcher(InstructionGroup):
 class MenuDisplay(InstructionGroup):
     def __init__(self):
         super(MenuDisplay, self).__init__()
-        self.color = Color(0.5, 0.5, 0.5)
+        self.color = Color(rgba=(0.5, 0, 1, 0.5))
         self.add(self.color)
         self.bg = Rectangle(pos=(0, 0), size=[SCREEN_WIDTH, SCREEN_HEIGHT])
         self.add(self.bg)
+        self.buttons = list()
+        self.lvl1_button = MenuButton("Level 1", 0, True)
+        self.tut_button = MenuButton("Walkthrough", 1, False)
+        self.buttons.append(self.tut_button)
+        self.buttons.append(self.lvl1_button)
+        self.add(self.lvl1_button)
+        self.add(self.tut_button)
+        self.title = CoreLabel(text="Beat Runner", font_size=56, halign="center")
+        self.title.refresh()
+        self.title_rec = Rectangle(pos=(SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT - 150), size=(200, 50), font_name="RobotoMono", texture=self.title.texture)
+        self.add(WHITE)
+        self.add(self.title_rec)
+        self.highlit_button = 1
+
+    def highlight_button(self, delta):
+        for button in self.buttons:
+            button.unhighlight()
+        self.highlit_button += delta
+        if self.highlit_button >= len(self.buttons):
+            self.highlit_button = 0
+        if self.highlit_button < 0:
+            self.highlit_button = len(self.buttons) - 1
+        self.buttons[self.highlit_button].highlight()
 
     def on_update(self, dt):
+        for button in self.buttons:
+            button.on_update(dt)
+        return True
+
+
+class MenuButton(InstructionGroup):
+    def __init__(self, labeltext, offset, selected=False):
+        super(MenuButton, self).__init__()
+        # setup ree
+        self.width = 200
+        self.text_color = WHITE
+        self.button_color = Color(0.5, 0.5, 0.5)
+        self.highlight_color = Color(1, 1, 0)
+        self.label = CoreLabel(text=labeltext, font_size=48, halign="center")
+        self.label.refresh()
+        self.outer_rec = Rectangle(pos=(SCREEN_WIDTH / 2 - self.width / 2, SCREEN_HEIGHT / 2 - 60 * offset), size=(self.width, 50))
+        self.inner_rec = Rectangle(pos=(SCREEN_WIDTH / 2 - self.width / 2 + 2, SCREEN_HEIGHT / 2 - 60 * offset + 2), size=(self.width - 5, 45))
+        self.text_rec  = Rectangle(pos=(SCREEN_WIDTH / 2 - self.width / 2 + 20, SCREEN_HEIGHT / 2 - 60 * offset + 10), size=(self.width - 40, 30), texture=self.label.texture)
+        
+        self.selected = selected
+        self.alpha = 0
+        self.direction = 0.5
+
+        # draw the buttons
+        if self.selected:
+            self.add(self.highlight_color)
+        else:
+            self.add(Color(0.5, 0.5, 0.5))
+        self.add(self.outer_rec)
+        self.add(self.button_color)
+        self.add(self.inner_rec)
+        self.add(self.text_color)
+        self.add(self.text_rec)
+
+    def highlight(self):
+        self.remove(self.outer_rec)
+        self.add(self.highlight_color)
+        self.add(self.outer_rec)
+        self.selected = True
+
+    def unhighlight(self):
+        self.remove(self.outer_rec)
+        self.remove(self.inner_rec)
+        self.remove(self.text_rec)
+        self.add(self.button_color)
+        self.add(self.outer_rec)
+        self.add(self.inner_rec)
+        self.add(self.text_color)
+        self.add(self.text_rec)
+        self.selected = False
+
+    def on_update(self, dt):
+        if self.selected:
+            self.alpha += dt * self.direction
+            if self.alpha > 0.5:
+                self.alpha = 0.5
+                self.direction = -0.5
+            if self.alpha < 0:
+                self.alpha = 0
+                self.direction = 0.5
+            self.remove(self.outer_rec)
+            self.add(Color(rgba=(1, 1, 0, self.alpha)))
+            self.add(self.outer_rec)
+
         return True
 
 
 class TutorialDisplay(InstructionGroup):
-    def __init__(self):
+    def __init__(self, block_data, powerup_data, audio_manager, label, game_engine):
         super(TutorialDisplay, self).__init__()
         self.color = GREEN
-        self.add(self.color)
-        self.bg = Rectangle(pos=(0, 0), size=[SCREEN_WIDTH, SCREEN_HEIGHT])
+        self.game_engine = game_engine
+        self.audio_manager = audio_manager
+        self.bg = Rectangle(pos=(0, 0), size=[SCREEN_WIDTH, SCREEN_HEIGHT], texture=Image("img/cl.jpg").texture)
         self.add(self.bg)
-        
+        self.message = 0
+        self.description = 0  
+        self.current_frame = 0
+        self.game_speed = INIT_RIGHT_SPEED
+        self.last_powerup_bars_update = 0
+        self.current_powerup = 0
+        self.current_block = 0
+        self.playing = True  
+        self.block_data = []
+        self.powerup_data = [
+            (3.0, 1, "vocals_boost"),
+            (3.5, 1, "transition_token"),
+            (4.05, 1, "lower_volume"),
+            (4.5, 1, "raise_volume"),
+            (5.0, 1, "transition_token"),
+            (5.5, 1, "speedup"),
+            (6.5, 2, "speedup"),
+            (7.0, 1, "transition_token"),
+            (7.5, 2, "slowdown"),
+            (8.5, 1, "reset"),
+            (9.0, 1, "transition_token"),
+            (9.5, 2, "danger")
+        ]
+        self.blocks = []
+        self.powerups = []
         self.player = Player(listen_collision_above_blocks=self.listen_collision_above_block,
                         listen_collision_ground=self.listen_collision_ground,
                              listen_collision_powerup=self.listen_collision_powerup,
                              listen_collision_below_blocks=self.listen_collision_below_block)
         self.add(self.player)
+        self.main_bar = MainProgressBar(self.audio_manager.get_current_length(), self.player.toggle_glow)
+        self.add(self.main_bar)
+        self.ground = Ground()
+        self.add(self.ground)
+        
+        self.powerup_bars = ProgressBars(label)
+        self.add(self.powerup_bars)
+        self.last_powerup_bars_update = 0
+
+        self.beatmatcher = BeatMatcher(self.audio_manager, 120, 90)
+        self.add(self.beatmatcher)
+        self.index_to_y = [0, int(SCREEN_HEIGHT/5), int(SCREEN_HEIGHT * 2/5), int(SCREEN_HEIGHT*3/5)]  # maps block/powerup indices to y coords
+
+        self.messages = [
+            "Press W to jump",
+            "Hit powerups to change the sound",
+            "Adjust the speed to match the next song",
+            "Fill the bar to change songs",
+            "Avoid dangers"
+        ]
+        self.descriptions = [
+            "Tempo matcher",
+            "Song duration",
+            "Powerup meter"
+        ]
+
+        self.powerup_listeners = {'powerup_note': [self.audio_manager.play_powerup_effect],
+                                  'lower_volume': [self.audio_manager.lower_volume],
+                                  'raise_volume': [self.audio_manager.raise_volume],
+                                  'error': [self.audio_manager.play_error_effect],
+                                  'bass_boost': [self.audio_manager.bass_boost],
+                                  'vocals_boost': [self.audio_manager.vocals_boost],
+                                  'reset_filter': [self.audio_manager.reset_filter],
+                                  'underwater': [self.audio_manager.underwater],
+                                  'speedup': [self.audio_manager.speedup, self.increase_game_speed],
+                                  'slowdown': [self.audio_manager.slowdown, self.decrease_game_speed],
+                                  'reset_speed': [self.audio_manager.reset_speed, self.reset_game_speed],
+                                  'sample_on':[self.audio_manager.sample_on],
+                                  'sample_off':[self.audio_manager.sample_off],
+                                  'reset_sample':[self.audio_manager.reset_sample],
+                                  'riser':[self.audio_manager.riser],
+                                  "trophy": [self.audio_manager.toggle, self.toggle, self.win_game],
+                                  'danger': [self.audio_manager.toggle, self.toggle, self.lose_game],
+                                  'transition_token': [self.audio_manager.add_transition_token, self.main_bar.add_powerup, self.change_text],
+                                  "transition": [self.win_game],
+                                  "reset":[self.audio_manager.reset, self.main_bar.add_powerup]}
+        message_label = CoreLabel(text=self.messages[self.message], font_size=56)
+        description_label = CoreLabel(text=self.descriptions[self.description])
+        message_label.refresh()
+        self.message_rec = Rectangle(pos=(SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 3.5), size=(200,50), texture=message_label.texture)
+        self.add(WHITE)
+        self.add(self.message_rec)
+
+    def change_text(self):
+        self.remove(self.message_rec)
+        self.message += 1
+        message_label = CoreLabel(text=self.messages[self.message] if self.message < len(self.messages) else "", font_size=56)
+        message_label.refresh()
+        self.message_rec = Rectangle(pos=(SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 3.5), size=(200,50), texture=message_label.texture)
+        self.add(self.message_rec)
 
     def on_update(self, dt):
+        if self.playing:
+            self.player.on_update(dt)
+            self.main_bar.on_glow_update(dt)
+            self.beatmatcher.on_update(dt)
+            if abs(self.current_frame - self.last_powerup_bars_update) > Audio.sample_rate / 2:
+                self.powerup_bars.on_update(dt + 0.5)
+                self.last_powerup_bars_update = self.current_frame
+                self.main_bar.on_progress_bar_update(dt + 0.5)
+
+            removed_items = set()
+
+            # UPDATE EACH POWERUP AND BLOCK, AND TRACK IF THEY ARE REMOVED OR NOT FROM THE GAME FRAME
+            # For blocks, track if a block goes off screen
+            # for powerups, track if a powerup is activated or go off screen
+            # remove removed items from the animation.
+            for block in self.blocks:
+                if not block.on_update(dt):
+                    removed_items.add(block)
+
+            for powerup in self.powerups:
+                if not powerup.on_update(dt):
+                    if powerup.powerup_type == "danger":
+                        self.win_game()
+                    removed_items.add(powerup)
+            for item in removed_items:
+                self.remove(item)
+
+            self.powerups = set([p for p in self.powerups if p not in removed_items])
+            self.blocks = set([b for b in self.blocks if b not in removed_items])
+
+            # add new blocks and powerups
+            # COMPARE ANNOTATION NOTES TO CURRENT FRAME AND ADD NEW OBJECTS ACCORDINGLY
+            block_valid = self.current_block < len(self.block_data)
+            block_onscreen = block_valid and self.current_frame / Audio.sample_rate > self.block_data[self.current_block][0] - SECONDS_FROM_RIGHT_TO_PLAYER
+            
+            if block_onscreen:
+                self.add_block(self.current_block)
+                self.current_block += 1
+
+            powerup_valid = self.current_powerup < len(self.powerup_data)
+            powerup_onscreen = powerup_valid and self.current_frame / Audio.sample_rate > self.powerup_data[self.current_powerup][0] - SECONDS_FROM_RIGHT_TO_PLAYER
+            
+            if powerup_onscreen:
+                self.add_powerup(self.current_powerup)
+                self.current_powerup += 1
         return True
+
+    def reset(self):
+        self.playing = False
+        self.message = 0
+        self.current_block = 0
+        self.current_frame = 0
+        self.current_powerup = 0
+        self.last_powerup_bars_update = 0
+
+    def on_jump(self):
+        self.player.on_jump()
+
+    def on_fall(self):
+        self.player.on_fall()
+
+    def toggle(self):
+        self.playing = not self.playing
+
+    def win_game(self):
+        self.game_engine.anim_group.remove(self)
+        self.game_engine.anim_group.add(self.game_engine.menu_display)
+        self.game_engine.screen = "menu"
+        self.toggle()
+        self.game_engine.tutorial_audio_manager.toggle()
+
+    def lose_game(self):
+        pass
+
+    def update_frame(self, frame):
+        """
+        Updates the current frame.
+        Arguments:
+            frame (int): frame to set game frame to
+        """
+        self.current_frame = frame
+
+    def add_powerup(self, powerup):
+        """
+        Creates a new Powerup object from an index into the list of powerup tuple data and adds it to the game.
+        Arguments:
+            powerup (int): index of powerup tuple to be instantiated
+        """
+        y_pos = self.powerup_data[powerup][1]
+        p_type = self.powerup_data[powerup][2]
+        if p_type == "transition" and self.main_bar.powerups_collected != 5:
+            return
+        new_powerup = Powerup((SCREEN_WIDTH, self.index_to_y[y_pos-1] + GROUND_Y + BLOCK_HEIGHT), p_type, self.game_speed, self.powerup_listeners[p_type])
+        self.powerups.add(new_powerup)
+        self.add(new_powerup)
 
     def listen_collision_below_block(self, player):
         """
@@ -731,7 +999,40 @@ class TutorialDisplay(InstructionGroup):
                     return powerup
         return None
 
+    def increase_game_speed(self):
+        """
+        Increases game speed.
+        For use with audio pitch/speed increases.
+        """
+        self.game_speed = self.game_speed * 2**(1/12)
+        for block in self.blocks:
+            block.change_speed(self.game_speed)
+        for powerup in self.powerups:
+            powerup.change_speed(self.game_speed)
 
+    def decrease_game_speed(self):
+        """
+        Decreases game speed.
+        For use with audio pitch/speed decreases.
+        """
+        self.game_speed = self.game_speed / 2**(1/12)
+        for block in self.blocks:
+            block.change_speed(self.game_speed)
+        for powerup in self.powerups:
+            powerup.change_speed(self.game_speed)
+
+    def reset_game_speed(self):
+        """
+        Resets game to normal speed.
+        For use with audio pitch/speed resets.
+        """
+        self.game_speed = INIT_RIGHT_SPEED
+        for block in self.blocks:
+            block.change_speed(self.game_speed)
+        for powerup in self.powerups:
+            powerup.change_speed(self.game_speed)
+
+        
 ##
 # WRAPPER CLASS FOR THE GAME DISPLAY
 # args: song_data, powerup_data: annotations indicating where blocks and powerups should be, respectively.
@@ -757,6 +1058,7 @@ class GameDisplay(InstructionGroup):
 
         self.bg_color = Color(1,1,1)
         self.add(self.bg_color)
+        self.label = label
 
         self.background = Background()
         self.player = Player(listen_collision_above_blocks=self.listen_collision_above_block,
@@ -813,6 +1115,9 @@ class GameDisplay(InstructionGroup):
         # transition tempo meter
         self.beatmatcher = BeatMatcher(self.audio_manager, 120, 90)
         self.add(self.beatmatcher)
+
+    def reset(self):
+        self.__init__(self.block_data, self.powerup_data, self.audio_manager, self.label, self.data_audio_transition_listener)
 
     # toggle paused of game or not
     def toggle(self):
