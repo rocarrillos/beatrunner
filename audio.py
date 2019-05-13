@@ -164,10 +164,10 @@ class AudioManager(object):
         return self.bpms[self.transitions] * self.primary_song.get_speed()
 
     def get_secondary_bpm(self):
-        if self.transitions < len(self.bpms) and self.secondary_song is not None:
+        if self.transitions < len(self.bpms) - 1:
             return self.bpms[self.transitions + 1] * self.secondary_song.get_speed()
         else:
-            return 0
+            return self.bpms[self.transitions]
 
     # speedup the song and/or sampler
     def speedup(self):
@@ -259,7 +259,7 @@ class AudioManager(object):
 
     def on_update(self):
         if self.active:
-            print(self.mixer.get_gain(), self.primary_song.get_gain())
+            # print(self.mixer.get_gain(), self.primary_song.get_gain())
             self.audio.on_update()
 
 

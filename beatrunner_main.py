@@ -37,6 +37,15 @@ class MainWidget(BaseWidget) :
         self.add_widget(self.other_label)
 
     def on_key_down(self, keycode, modifiers):
+        if self.screen == "game" and self.game_display.is_over():
+                    self.anim_group.remove(self.game_display)
+                    self.anim_group.add(self.menu_display)
+                    self.audio_manager.restart()
+                    self.song_data = SongData()
+                    self.song_data.read_data(*self.game_data.song_data_files, 0)
+                    self.playing = False
+                    self.screen = "menu"
+
         if keycode[1] == 'p':  # PAUSE/PLAY
             if self.screen == "game":
                 self.game_display.toggle()
@@ -59,14 +68,12 @@ class MainWidget(BaseWidget) :
                 if not self.playing:
                     self.anim_group.remove(self.game_display)
                     self.anim_group.add(self.menu_display)
-                    self.game_display = GameDisplay(self.song_data.blocks, self.song_data.powerups, self.audio_manager, self.other_label, self.handle_transition)
                     self.audio_manager.restart()
                     self.playing = False
                     self.screen = "menu"
             if self.screen == "tutorial":
                 self.anim_group.remove(self.tutorial_display)
                 self.anim_group.add(self.menu_display)
-                self.tutorial_display = TutorialDisplay(self.song_data.blocks, self.song_data.powerups, self.audio_manager,  self.other_label, self)
                 self.tutorial_audio_manager.restart() 
                 self.screen = "menu"
 
@@ -84,6 +91,9 @@ class MainWidget(BaseWidget) :
                     self.anim_group.add(self.tutorial_display)
                     self.tutorial_audio_manager.set_as_audio(self.audio)
                     self.screen = "tutorial"
+            if self.screen == "game":
+                if self.playing:
+                    self.handle_transition()
 
         if keycode[1] == "up":
             if self.screen == "menu":
@@ -101,6 +111,7 @@ class MainWidget(BaseWidget) :
             if self.screen == "menu":
                 if self.button % 2 == 0:
                     self.anim_group.remove(self.menu_display)
+                    self.tutorial_display = TutorialDisplay(self.song_data.blocks, self.song_data.powerups, self.audio_manager,  self.other_label, self)
                     self.anim_group.add(self.tutorial_display)
                     self.tutorial_audio_manager.set_as_audio(self.audio)
                     self.tutorial_audio_manager.toggle() 
@@ -108,11 +119,13 @@ class MainWidget(BaseWidget) :
                     self.screen = "tutorial"
                 if self.button % 2 == 1:
                     self.anim_group.remove(self.menu_display)
+                    self.game_display = GameDisplay(self.song_data.blocks, self.song_data.powerups, self.audio_manager, self.other_label, self.handle_transition)
                     self.anim_group.add(self.game_display)
                     self.audio_manager.set_as_audio(self.audio)
                     self.screen = "game"
             if self.screen == "tutorial":
                 self.tutorial_display.change_text()
+            
         
 
     def on_key_up(self, keycode):

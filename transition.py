@@ -47,7 +47,10 @@ class GameData(object):
         self.player_images = PLAYER_IMAGES[self.level]
         self.block_image = BLOCK_IMAGES[self.level]
         self.ground_image = GROUND_IMAGES[self.level]
-        self.next_song_name = AUDIO_FILES[self.level + 1 ] if self.level < len(AUDIO_FILES) else None
+        if self.level < len(AUDIO_FILES) - 1:
+            self.next_song_name = AUDIO_FILES[self.level + 1 ]
+        else:
+            self.next_song_name = AUDIO_FILES[self.level]
 
         self.bg_image = BACKGROUND_IMAGES[self.level]
         self.song_name = SONG_NAMES[self.level]

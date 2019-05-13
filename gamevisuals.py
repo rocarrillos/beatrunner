@@ -1137,20 +1137,34 @@ class GameDisplay(InstructionGroup):
         """
         self.player.on_fall()
 
+    def is_over(self):
+        return self.over
+
     def lose_game(self):
         """
         Show game-losing screen.
         """
         self.over = True
+        self.playing = False
         self.remove(self.background)
         self.background.show_death()
         self.add(self.background)
+        self.add(WHITE)
+        text = CoreLabel(text="press any key to exit", font_size=56)
+        text.refresh()
+        self.add(Rectangle(pos=(SCREEN_WIDTH / 2 - 150, SCREEN_HEIGHT / 4), size=(300, 50), texture=text.texture))
 
     def win_game(self):
         """
-        Show game-wining screen.
+        Show game-winning screen.
         """
-        self.add(Rectangle(pos=(0, 0), size=[SCREEN_WIDTH, SCREEN_HEIGHT]))
+        self.over = True
+        self.playing = False
+        self.add(Rectangle(pos=(0, 0), size=[SCREEN_WIDTH, SCREEN_HEIGHT], texture=Image("img/darksky.jpg").texture))
+        self.add(WHITE)
+        text = CoreLabel(text="press any key to exit", font_size=56)
+        text.refresh()
+        self.add(Rectangle(pos=(SCREEN_WIDTH / 2 - 150, SCREEN_HEIGHT / 3), size=(300, 50), texture=text.texture))
 
     def set_activation_listeners(self, powerup, new_p_type):
         powerup.activation_listeners = self.powerup_listeners[new_p_type]
