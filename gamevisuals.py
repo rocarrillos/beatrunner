@@ -798,7 +798,6 @@ class TutorialDisplay(InstructionGroup):
                                   'bass_boost': [self.audio_manager.bass_boost],
                                   'vocals_boost': [self.audio_manager.vocals_boost],
                                   'reset_filter': [self.audio_manager.reset_filter],
-                                  'underwater': [self.audio_manager.underwater],
                                   'speedup': [self.audio_manager.speedup, self.increase_game_speed],
                                   'slowdown': [self.audio_manager.slowdown, self.decrease_game_speed],
                                   'reset_speed': [self.audio_manager.reset_speed, self.reset_game_speed],
