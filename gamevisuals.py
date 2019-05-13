@@ -41,7 +41,7 @@ TEXTURES = {'vocals_boost': Image("img/high.png").texture, 'bass_boost': Image("
             'powerup_note':Image("img/riser.png").texture,"lower_volume":Image("img/arrowdownred.png").texture,
             "raise_volume": Image("img/uparrowred.png").texture, "reset_filter":Image("img/reset_filter.png").texture,
             "reset_speed": Image("img/reset_speed.png").texture,"speedup":Image("img/speedup.png").texture,
-            "slowdown": Image("img/ice.jpg").texture,"reg_to_high":Image("img/reg_to_high.png").texture,
+            "slowdown": Image("img/ice.png").texture,"reg_to_high":Image("img/reg_to_high.png").texture,
             "sample_on": Image("img/sample_on.png").texture, "sample_off": Image("img/sample_off.png").texture,
             "reset_sample":Image("img/sample_off.png").texture, "start_transition": Image("img/green_spiral.png").texture,
             "end_transition": Image("img/red_spiral.png").texture, "riser":Image("img/riser.png").texture,
@@ -407,6 +407,8 @@ class ProgressBars(InstructionGroup):
             wave_src (WaveGenerator): sound source 
             sound_name (string): label text
         """
+        if sound_name in self.progress_bars:
+            self.remove_bar(sound_name)
         new_bar = SoundProgressBar(duration, sound_name, self.bar_positions[sound_name])
         self.progress_bars[sound_name] = new_bar
         self.add(new_bar)
@@ -515,7 +517,7 @@ class MainProgressBar(InstructionGroup):
         self.add(self.current_song_progress_line)
 
         # progress bar state - info on level, transition powerups collected, current song info
-        self.powerups_collected = 2
+        self.powerups_collected = 0
         self.level = 0  # level is 0 indexed
         self.song_length = song_length
         self.song_frame = 0
@@ -1354,7 +1356,7 @@ class GameDisplay(InstructionGroup):
                         player_y < powerup_y + POWERUP_LENGTH < player_y + PLAYER_HEIGHT:
                     if powerup.powerup_type == "sample_on" or powerup.powerup_type == "sample_off":
                         powerup.activate([[self.current_frame]])
-                    elif powerup.powerup_type == "riser" or "boost" in powerup.powerup_type:
+                    elif powerup.powerup_type == "riser" or "boost" in powerup.powerup_type or powerup.powerup_type=="reg_to_high":
                         powerup.activate([[self.powerup_bars.add_bar]])
                     elif powerup.powerup_type == "reset":
                         powerup.activate([[self.powerup_bars.remove_bar],[self.audio_manager.enough_past_powerups()],[False],[]])

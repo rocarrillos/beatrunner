@@ -64,7 +64,6 @@ class AudioManager(object):
         self.transition_expiration_dict={"riser":9*Audio.sample_rate, "filter":8.5*Audio.sample_rate, "volume":3*Audio.sample_rate,
                                         "sample":3*Audio.sample_rate, "speed":3*Audio.sample_rate}
         self.ongoing_effects = []
-        self.score = 0
 
     def restart(self):
         self.primary_song = Song(self.first_file)
@@ -75,7 +74,6 @@ class AudioManager(object):
         self.mixer.set_gain(1)
         self.mixer.add(self.primary_song)
         self.audio.set_generator(self.mixer)
-        self.score = 0
         self.active = False
     
     def set_as_audio(self, audio):
@@ -141,9 +139,10 @@ class AudioManager(object):
         self.transition_lasthit_dict["filter"] = self.get_current_frame()
         if add_bar: add_bar(8*Audio.sample_rate, "FILTER")
 
-    def reg_to_high_boost(self):
+    def reg_to_high_boost(self, add_bar=None):
         # self.primary_filter.change_pass("band")
         self.primary_song.set_filter("reg_to_high")
+        if add_bar: add_bar(8*Audio.sample_rate, "FILTER")
 
     def riser(self, add_bar=None):
         riser = WaveGenerator(WaveFile("data/riser1.wav"))
@@ -173,13 +172,11 @@ class AudioManager(object):
     def speedup(self):
         self.primary_song.set_speed(self.primary_song.get_speed() * 2**(1/12))
         self.transition_lasthit_dict["speed"] = self.get_current_frame()
-        self.score += 10
 
     # slow down the song and /or sampler
     def slowdown(self):
         self.primary_song.set_speed(self.primary_song.get_speed() / 2**(1/12))   
         self.transition_lasthit_dict["speed"] = self.get_current_frame()     
-        self.score += 10
 
     ###### SAMPLE EFFECTS #########
     # start the sample by retaining current frame
@@ -201,7 +198,6 @@ class AudioManager(object):
     # remove the primary song from the mixer.
     # remove any samples that may be playing.
     def end_transition_song(self, next_song):
-        self.score += self.get_transition_score()
         self.mixer.remove(self.primary_song)
         self.primary_song.reset_sample()
         self.primary_song = self.secondary_song
@@ -234,18 +230,6 @@ class AudioManager(object):
 
     def get_current_length(self):
         return self.primary_song.get_length()
-
-    # calc the transition score based off of risers/samplers (and other effects in the future)
-    def get_transition_score(self):
-        score = 0
-        # if self.transition_score_dict["riser"]:
-        #     riser_frames = 8.34 * Audio.sample_rate
-        #     riser_score = riser_frames - (self.get_current_frame() - self.transition_score_dict["riser"])
-        #     score += abs(int(riser_score *100 / riser_frames) if riser_score > -1 * riser_frames else 0)
-        # if self.sampler or (self.transition_score_dict["sample"] and self.transition_score_dict["sample"] - 2 * self.sample_off_frame < -1 * self.sample_on_frame):
-        #     sampler_score = int(100 * self.sample_on_frame/self.sample_off_frame)
-        #     score += sampler_score
-        return score
 
     def get_ongoing_effects(self):
         return 
@@ -362,8 +346,12 @@ class Song(object):
     def set_sampling_off_frame(self, frame):
         if self.sampler_on_frame and not self.sampler_off_frame:
             self.sampler_off_frame = frame
-            self.sampler_filter = FilterMixer(self.audio_file, SpeedModulator(WaveGenerator(WaveBuffer(self.audio_file, self.sampler_on_frame,self.get_frame() - self.sampler_on_frame), loop=True),speed=self.get_speed()), self.get_gain, self.get_frame)
+            self.sampler_filter = FilterMixer(self.audio_file, SpeedModulator(WaveGenerator(
+                WaveBuffer(self.audio_file, self.sampler_on_frame,self.get_frame() - self.sampler_on_frame), loop=True)
+                ,speed=self.get_speed()), self.get_gain, self.get_frame)
             self.sampler_filter.set_gain(self.get_gain())
+            # if self.song_filter.f_type:
+            #     self.sampler_filter.set_filter(self.song_filter.f_type, filter_length=self.song_filter.filter_length - (self.get_frame() - self.song_filter.filter_frame_on))
         elif self.sampler_off_frame:
             self.reset_sample()
 
@@ -392,6 +380,7 @@ class FilterMixer(object):
         self.mixer.add(self.regular)
         self.frame, self.filter_frame_on = 0, 0
         self.f_type = None
+        self.filter_length = None
 
         self.reg_to_anim = KFAnim((0,0),(8,1))
 
@@ -412,9 +401,10 @@ class FilterMixer(object):
         if self.high: self.high.set_speed(new_speed)
         if self.low: self.low.set_speed(new_speed)
 
-    def set_filter(self, f_type):
+    def set_filter(self, f_type, filter_length=4*Audio.sample_rate):
         self.reset_filter()
         self.f_type = f_type
+        self.filter_length = filter_length
         if f_type == "high":
             self.high = SpeedModulator(WaveGenerator(
                 WaveBuffer(self.audiofile_name[:-4] + "_high.wav", self.get_frame(), 
@@ -426,7 +416,7 @@ class FilterMixer(object):
         elif f_type == "low":
             self.low = SpeedModulator(WaveGenerator(
                 WaveBuffer(self.audiofile_name[:-4] + "_low.wav", self.get_frame(), 
-                self.get_frame() + 4*Audio.sample_rate))
+                self.get_frame() + filter_length))
             )
             self.mixer.add(self.low)
             self.low.set_gain(self.get_gain())
@@ -449,7 +439,7 @@ class FilterMixer(object):
             self.regular.set_gain(self.low.get_gain())
             self.mixer.remove(self.low)
         self.filter_frame_on = 0
-        self.f_type = None
+        self.f_type, self.filter_length = None, None
 
     def set_gain(self, new_gain):
         self.regular.set_gain(new_gain)
