@@ -206,6 +206,7 @@ class AudioManager(object):
         self.reset_speed()
         self.reset_sample()
         self.reset_filter(remove_bar)
+        self.mixer.set_gain(1)
         
     def add_transition_token(self):
         pass
@@ -241,6 +242,7 @@ class AudioManager(object):
 
     def on_update(self):
         if self.active:
+            print(self.mixer.get_gain(), self.primary_song.get_gain())
             self.audio.on_update()
 
 

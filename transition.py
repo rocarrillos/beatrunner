@@ -1,4 +1,4 @@
-AUDIO_FILES = ["data/babyshark.wav", "data/closerremix.wav", "data/migente_short.wav"]
+AUDIO_FILES = ["data/babyshark.wav", "data/closerremix_98bpm.wav", "data/migente_short.wav"]
 SONG_DATA_FILES = [("data/babyshark_blocks.txt", "data/babyshark_powerups.txt"),
                     ("data/closer_blocks.txt", "data/closer_powerups.txt"),
                     ("data/migente_blocks.txt", "data/migente_powerups.txt")]

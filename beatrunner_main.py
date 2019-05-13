@@ -74,16 +74,13 @@ class MainWidget(BaseWidget) :
     def on_key_up(self, keycode):
         if keycode[1] == "w":
             self.game_display.on_fall()
-
-        # if keycode[1] == 't':
-        #     self.handle_transition()
             
     def handle_transition(self):
         self.game_data.transition()
         self.audio_manager.add_transition_song(self.game_data.audio_file_name)
-        self.song_data.read_data(*self.game_data.song_data_files, self.lifetime)  ## transition
+        self.song_data.read_data(self.game_data.song_data_files[0], self.game_data.song_data_files[1], self.lifetime)  ## transition
         self.audio_manager.end_transition_song(self.game_data.get_next_song())
-        self.game_display.graphics_transition(self.game_data.player_images, self.game_data.ground_image,
+        self.game_display.graphics_transition(self.song_data.blocks, self.song_data.powerups, self.game_data.player_images, self.game_data.ground_image,
                                         self.game_data.bg_image, self.game_data.block_image)
 
     def on_update(self) :
@@ -127,6 +124,7 @@ class SongData(object):
     # argument if your poweruppath data is stored in a different txt file.
     def read_data(self, blockpath, poweruppath, time):
         print(time)
+        self.blocks, self.powerups = [], []
         blocklines = self.lines_from_file(blockpath)
 
         for line in blocklines:

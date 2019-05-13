@@ -554,6 +554,7 @@ class MainProgressBar(InstructionGroup):
         self.glow_dt = 0
         self.glow = False
         self.inside_color.b = 0
+        self.powerups_collected = 0
         self.trigger_glow_listener(self.glow)
 
     def reset_song_frame(self, next_song_frame, next_song_length):
@@ -931,17 +932,17 @@ class GameDisplay(InstructionGroup):
         self.add(new_powerup)
 
     # add new blocks for new song
-    def change_blocks(self):
+    def change_blocks(self, new_blocks, new_powerups):
         """
         Removes blocks for previous song from play and adds blocks for new song.
         """
-        removed_items = set()
-        for block in self.blocks:
-            removed_items.add(block)
-        for item in removed_items:
+        for item in self.blocks:
             self.remove(item)
-        self.blocks = set()
-        self.current_block = 0
+        for item in self.powerups:
+            self.remove(item)
+        self.blocks, self.powerups = set(), set()
+        self.block_data, self.powerup_data = new_blocks, new_powerups
+        self.current_block, self.current_powerup = 0, 0
 
     def add_new_song_powerups(self):
         """
@@ -1074,7 +1075,7 @@ class GameDisplay(InstructionGroup):
         for powerup in self.powerups:
             powerup.change_speed(self.game_speed)
 
-    def graphics_transition(self, player_textures, ground_texture, background_texture, block_texture):
+    def graphics_transition(self, new_blocks, new_powerups, player_textures, ground_texture, background_texture, block_texture):
         """
         Handler for song-to-song transitions.
         Updates player object, resets song progress bar, and resets game speed.
@@ -1087,7 +1088,7 @@ class GameDisplay(InstructionGroup):
         self.ground.set_texture(ground_texture)
         self.background.set_texture(background_texture)
         self.block_texture = block_texture
-        self.change_blocks()
+        self.change_blocks(new_blocks, new_powerups)
         self.reset_game_speed()
         self.main_bar.add_level()
         self.main_bar.reset_song_frame(self.audio_manager.get_current_frame(), self.audio_manager.get_current_length())
