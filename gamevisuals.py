@@ -407,6 +407,8 @@ class ProgressBars(InstructionGroup):
             wave_src (WaveGenerator): sound source 
             sound_name (string): label text
         """
+        if sound_name in self.progress_bars:
+            self.remove_bar(sound_name)
         new_bar = SoundProgressBar(duration, sound_name, self.bar_positions[sound_name])
         self.progress_bars[sound_name] = new_bar
         self.add(new_bar)

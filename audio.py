@@ -350,8 +350,8 @@ class Song(object):
                 WaveBuffer(self.audio_file, self.sampler_on_frame,self.get_frame() - self.sampler_on_frame), loop=True)
                 ,speed=self.get_speed()), self.get_gain, self.get_frame)
             self.sampler_filter.set_gain(self.get_gain())
-            if self.song_filter.f_type:
-                self.sampler_filter.set_filter(self.song_filter.f_type, filter_length=self.song_filter.filter_length - (self.get_frame() - self.song_filter.filter_frame_on))
+            # if self.song_filter.f_type:
+            #     self.sampler_filter.set_filter(self.song_filter.f_type, filter_length=self.song_filter.filter_length - (self.get_frame() - self.song_filter.filter_frame_on))
         elif self.sampler_off_frame:
             self.reset_sample()
 
