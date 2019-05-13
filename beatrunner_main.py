@@ -42,7 +42,8 @@ class MainWidget(BaseWidget) :
                     self.anim_group.add(self.menu_display)
                     self.audio_manager.restart()
                     self.song_data = SongData()
-                    self.song_data.read_data(*self.game_data.song_data_files, 0)
+                    self.game_data = GameData()
+                    self.song_data.read_data(*self.game_data.song_data_files)
                     self.playing = False
                     self.screen = "menu"
 

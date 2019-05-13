@@ -745,18 +745,28 @@ class TutorialDisplay(InstructionGroup):
         self.playing = True  
         self.block_data = []
         self.powerup_data = [
-            (3.0, 1, "vocals_boost"),
-            (3.5, 1, "transition_token"),
-            (4.05, 1, "lower_volume"),
-            (4.5, 1, "raise_volume"),
-            (5.0, 1, "transition_token"),
-            (5.5, 1, "speedup"),
-            (6.5, 2, "speedup"),
-            (7.0, 1, "transition_token"),
-            (7.5, 2, "slowdown"),
-            (8.5, 1, "reset"),
-            (9.0, 1, "transition_token"),
-            (9.5, 2, "danger")
+            (3.0, 1, "speedup"),
+            (3.7, 1, "speedup"),
+            (4.5, 1, "speedup"),
+            (5.0, 2, "speedup"),
+            (5.4, 1, "speedup"),
+            (5.9, 1, "transition_token"),
+            (6.4, 1, "lower_volume"),
+            (6.999, 1, "raise_volume"),
+            (7.7, 2, "slowdown"),
+            (8.4, 1, "slowdown"),
+            (8.8, 1, "slowdown"),
+            (9.7, 2, "slowdown"),
+            (9.9, 1, "speedup"),
+            (10.5, 1, "transition_token"),
+            (11.5, 1, "speedup"),
+            (11.5, 2, "speedup"),
+            (13.0, 1, "transition_token"),
+            (13.5, 2, "slowdown"),
+            (14.5, 1, "reset"),
+            (15.0, 1, "transition_token"),
+            (15.5, 2, "danger"),
+            (17.0, 1, "trophy")
         ]
         self.blocks = []
         self.powerups = []
@@ -781,8 +791,8 @@ class TutorialDisplay(InstructionGroup):
         self.messages = [
             "Press W to jump",
             "Hit powerups to change the sound",
-            "Adjust the speed to match the next song",
-            "Fill the bar to change songs",
+            "Adjust the speed (yellow) to match the next song (red)",
+            "Fill the top bar to change songs",
             "Avoid dangers"
         ]
         self.descriptions = [
@@ -808,12 +818,12 @@ class TutorialDisplay(InstructionGroup):
                                   "trophy": [self.audio_manager.toggle, self.toggle, self.win_game],
                                   'danger': [self.audio_manager.toggle, self.toggle, self.lose_game],
                                   'transition_token': [self.audio_manager.add_transition_token, self.main_bar.add_powerup, self.change_text],
-                                  "transition": [self.win_game],
+                                  "transition": [self.win_game, self.change_text],
                                   "reset":[self.audio_manager.reset, self.main_bar.add_powerup]}
         message_label = CoreLabel(text=self.messages[self.message], font_size=56)
         description_label = CoreLabel(text=self.descriptions[self.description])
         message_label.refresh()
-        self.message_rec = Rectangle(pos=(SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 3.5), size=(200,50), texture=message_label.texture)
+        self.message_rec = Rectangle(pos=(SCREEN_WIDTH / 2 - 150, SCREEN_HEIGHT / 3.5), size=(300,50), texture=message_label.texture)
         self.add(WHITE)
         self.add(self.message_rec)
 
@@ -822,7 +832,7 @@ class TutorialDisplay(InstructionGroup):
         self.message += 1
         message_label = CoreLabel(text=self.messages[self.message] if self.message < len(self.messages) else "", font_size=56)
         message_label.refresh()
-        self.message_rec = Rectangle(pos=(SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 3.5), size=(200,50), texture=message_label.texture)
+        self.message_rec = Rectangle(pos=(SCREEN_WIDTH / 2 - 150, SCREEN_HEIGHT / 3.5), size=(300,50), texture=message_label.texture)
         self.add(self.message_rec)
 
     def on_update(self, dt):
@@ -888,6 +898,7 @@ class TutorialDisplay(InstructionGroup):
         self.player.on_fall()
 
     def toggle(self):
+        print(self.blocks[self.current_block])
         self.playing = not self.playing
 
     def win_game(self):
@@ -1123,6 +1134,7 @@ class GameDisplay(InstructionGroup):
         """
         Play or pause the game.
         """
+        print(self.current_block)
         self.paused = not self.paused
 
     def on_jump(self):
@@ -1162,8 +1174,11 @@ class GameDisplay(InstructionGroup):
         self.playing = False
         self.add(Rectangle(pos=(0, 0), size=[SCREEN_WIDTH, SCREEN_HEIGHT], texture=Image("img/darksky.jpg").texture))
         self.add(WHITE)
+        message = CoreLabel(text="you win!", font_size=56)
         text = CoreLabel(text="press any key to exit", font_size=56)
         text.refresh()
+        message.refresh()
+        self.add(Rectangle(pos=(SCREEN_WIDTH / 2 - 150, SCREEN_HEIGHT / 2), size=(300, 60), texture=message.texture))
         self.add(Rectangle(pos=(SCREEN_WIDTH / 2 - 150, SCREEN_HEIGHT / 3), size=(300, 50), texture=text.texture))
 
     def set_activation_listeners(self, powerup, new_p_type):
