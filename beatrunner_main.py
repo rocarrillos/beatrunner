@@ -17,7 +17,7 @@ class MainWidget(BaseWidget) :
         self.tutorial_audio_manager = AudioManager(self.audio, "data/tutorial.wav","data/tutorial.wav")
         self.screen = "menu"
         self.song_data = SongData()
-        self.song_data.read_data(*self.game_data.song_data_files, 0)
+        self.song_data.read_data(*self.game_data.song_data_files)
         self.game_display = GameDisplay(self.song_data.blocks, self.song_data.powerups, self.audio_manager, self.other_label, self.handle_transition)
         self.menu_display = MenuDisplay()
         self.tutorial_display = TutorialDisplay(self.song_data.blocks, self.song_data.powerups, self.audio_manager,  self.other_label, self)
@@ -97,13 +97,11 @@ class MainWidget(BaseWidget) :
 
         if keycode[1] == "up":
             if self.screen == "menu":
-                print("pressed")
                 self.button += 1
                 self.menu_display.highlight_button(1)
 
         if keycode[1] == "down":
             if self.screen == "menu":
-                print("pressed")
                 self.button -= 1
                 self.menu_display.highlight_button(-1)
 
@@ -115,7 +113,6 @@ class MainWidget(BaseWidget) :
                     self.anim_group.add(self.tutorial_display)
                     self.tutorial_audio_manager.set_as_audio(self.audio)
                     self.tutorial_audio_manager.toggle() 
-                    print("toggled", self.tutorial_audio_manager.active)
                     self.screen = "tutorial"
                 if self.button % 2 == 1:
                     self.anim_group.remove(self.menu_display)
@@ -138,11 +135,12 @@ class MainWidget(BaseWidget) :
     def handle_transition(self):
         self.game_data.transition()
         self.audio_manager.add_transition_song(self.game_data.audio_file_name)
-        self.song_data.read_data(self.game_data.song_data_files[0], self.game_data.song_data_files[1], self.lifetime)  ## transition
+        self.song_data.read_data(self.game_data.song_data_files[0], self.game_data.song_data_files[1])  ## transition
         self.audio_manager.end_transition_song(self.game_data.get_next_song())
         self.game_display.graphics_transition(self.song_data.blocks, self.song_data.powerups, self.game_data.player_images, self.game_data.ground_image,
                                         self.game_data.bg_image, self.game_data.block_image)
-
+        self.game_display.update_frame(self.audio_manager.get_current_frame())
+    
     def on_update(self) :
         if self.screen == "game":
             self.label.text = "Level "+str(self.game_data.level + 1) + "\n"
@@ -154,13 +152,13 @@ class MainWidget(BaseWidget) :
             self.label.text = "Tutorial Mode\n"
         if self.screen == "menu":
             self.label.text = ""
-        self.anim_group.on_update()
-        self.audio_manager.on_update()
-        self.tutorial_audio_manager.on_update()
         if self.screen == "game":
             self.game_display.update_frame(self.audio_manager.get_current_frame())
         elif self.screen == "tutorial":
             self.tutorial_display.update_frame(self.tutorial_audio_manager.get_current_frame())
+        self.anim_group.on_update()
+        self.audio_manager.on_update()
+        self.tutorial_audio_manager.on_update()
         if self.playing:
             self.prev_time = self.new_time
             self.new_time = time.time()
@@ -183,14 +181,12 @@ class SongData(object):
 
     # read the blocks and powerup data. You may want to add a secondary filepath
     # argument if your poweruppath data is stored in a different txt file.
-    def read_data(self, blockpath, poweruppath, time):
-        print(time)
+    def read_data(self, blockpath, poweruppath):
         self.blocks, self.powerups = [], []
         blocklines = self.lines_from_file(blockpath)
-
         for line in blocklines:
             blockline = line.split()
-            self.blocks.append((time + float(blockline[0]), int(blockline[2]), int(blockline[3])))
+            self.blocks.append((float(blockline[0]), int(blockline[2]), int(blockline[3])))
         powerups = self.lines_from_file(poweruppath)
         for p in powerups:
             powerup = p.split()

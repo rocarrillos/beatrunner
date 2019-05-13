@@ -206,6 +206,7 @@ class AudioManager(object):
         self.primary_song.reset_sample()
         self.primary_song = self.secondary_song
         self.secondary_song = Song(next_song)
+        self.mixer.set_gain(1)
         self.transitions += 1
         
     # reset the sampling and reinstate the normal playing song
@@ -259,7 +260,6 @@ class AudioManager(object):
 
     def on_update(self):
         if self.active:
-            # print(self.mixer.get_gain(), self.primary_song.get_gain())
             self.audio.on_update()
 
 
