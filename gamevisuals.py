@@ -517,7 +517,7 @@ class MainProgressBar(InstructionGroup):
         self.add(self.current_song_progress_line)
 
         # progress bar state - info on level, transition powerups collected, current song info
-        self.powerups_collected = 2
+        self.powerups_collected = 0
         self.level = 0  # level is 0 indexed
         self.song_length = song_length
         self.song_frame = 0
