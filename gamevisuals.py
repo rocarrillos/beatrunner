@@ -41,7 +41,7 @@ TEXTURES = {'vocals_boost': Image("img/high.png").texture, 'bass_boost': Image("
             'powerup_note':Image("img/riser.png").texture,"lower_volume":Image("img/arrowdownred.png").texture,
             "raise_volume": Image("img/uparrowred.png").texture, "reset_filter":Image("img/reset_filter.png").texture,
             "reset_speed": Image("img/reset_speed.png").texture,"speedup":Image("img/speedup.png").texture,
-            "slowdown": Image("img/ice.jpg").texture,"reg_to_high":Image("img/reg_to_high.png").texture,
+            "slowdown": Image("img/ice.png").texture,"reg_to_high":Image("img/reg_to_high.png").texture,
             "sample_on": Image("img/sample_on.png").texture, "sample_off": Image("img/sample_off.png").texture,
             "reset_sample":Image("img/sample_off.png").texture, "start_transition": Image("img/green_spiral.png").texture,
             "end_transition": Image("img/red_spiral.png").texture, "riser":Image("img/riser.png").texture,
