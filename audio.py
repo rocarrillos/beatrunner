@@ -408,7 +408,7 @@ class FilterMixer(object):
         if f_type == "high":
             self.high = SpeedModulator(WaveGenerator(
                 WaveBuffer(self.audiofile_name[:-4] + "_high.wav", self.get_frame(), 
-                self.get_frame() + 4*Audio.sample_rate))
+                self.get_frame() + 4*Audio.sample_rate)), speed=self.regular.get_speed()
             )
             self.mixer.add(self.high)
             self.high.set_gain(self.get_gain())
@@ -416,7 +416,7 @@ class FilterMixer(object):
         elif f_type == "low":
             self.low = SpeedModulator(WaveGenerator(
                 WaveBuffer(self.audiofile_name[:-4] + "_low.wav", self.get_frame(), 
-                self.get_frame() + filter_length))
+                self.get_frame() + filter_length)),speed=self.regular.get_speed()
             )
             self.mixer.add(self.low)
             self.low.set_gain(self.get_gain())
@@ -425,7 +425,7 @@ class FilterMixer(object):
         elif f_type == "reg_to_high":
             self.high = SpeedModulator(WaveGenerator(
                 WaveBuffer(self.audiofile_name[:-4] + "_high.wav", self.get_frame(), 
-                self.get_frame() + 4*Audio.sample_rate)), gain=0.0
+                self.get_frame() + 4*Audio.sample_rate)), gain=0.0,speed=self.regular.get_speed()
             )
             self.mixer.add(self.high)
 
