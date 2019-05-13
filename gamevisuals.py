@@ -1325,7 +1325,7 @@ class GameDisplay(InstructionGroup):
                         player_y < powerup_y + POWERUP_LENGTH < player_y + PLAYER_HEIGHT:
                     if powerup.powerup_type == "sample_on" or powerup.powerup_type == "sample_off":
                         powerup.activate([[self.current_frame]])
-                    elif powerup.powerup_type == "riser" or "boost" in powerup.powerup_type:
+                    elif powerup.powerup_type == "riser" or "boost" in powerup.powerup_type or powerup.powerup_type=="reg_to_high":
                         powerup.activate([[self.powerup_bars.add_bar]])
                     elif powerup.powerup_type == "reset":
                         powerup.activate([[self.powerup_bars.remove_bar],[self.audio_manager.enough_past_powerups()],[False],[]])
