@@ -260,7 +260,6 @@ class AudioManager(object):
 
     def on_update(self):
         if self.active:
-            print(self.mixer.get_gain(), self.primary_song.get_gain())
             self.audio.on_update()
 
 

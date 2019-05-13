@@ -515,7 +515,7 @@ class MainProgressBar(InstructionGroup):
         self.add(self.current_song_progress_line)
 
         # progress bar state - info on level, transition powerups collected, current song info
-        self.powerups_collected = 0
+        self.powerups_collected = 2
         self.level = 0  # level is 0 indexed
         self.song_length = song_length
         self.song_frame = 0
@@ -1193,7 +1193,6 @@ class GameDisplay(InstructionGroup):
             # COMPARE ANNOTATION NOTES TO CURRENT FRAME AND ADD NEW OBJECTS ACCORDINGLY
             block_valid = self.current_block < len(self.block_data)
             block_onscreen = block_valid and self.current_frame / Audio.sample_rate > self.block_data[self.current_block][0] - SECONDS_FROM_RIGHT_TO_PLAYER
-            
             if block_onscreen:
                 self.add_block(self.current_block)
                 self.current_block += 1
@@ -1246,21 +1245,8 @@ class GameDisplay(InstructionGroup):
             self.remove(item)
         self.blocks, self.powerups = set(), set()
         self.block_data, self.powerup_data = new_blocks, new_powerups
-        print(self.block_data)
 
         self.current_block, self.current_powerup = 0, 0
-
-    def add_new_song_powerups(self):
-        """
-        Removes powerups for previous song from play and adds powerups for new song.
-        """
-        removed_items = set()
-        for block in self.blocks:
-            removed_items.add(block)
-        for item in removed_items:
-            self.remove(item)
-        self.powerups = set()
-        self.current_powerup = 0
 
     def update_frame(self, frame):
         """
@@ -1394,8 +1380,8 @@ class GameDisplay(InstructionGroup):
         self.ground.set_texture(ground_texture)
         self.background.set_texture(background_texture)
         self.block_texture = block_texture
-        self.change_blocks(new_blocks, new_powerups)
         self.reset_game_speed()
         self.main_bar.add_level()
         self.main_bar.reset_song_frame(self.audio_manager.get_current_frame(), self.audio_manager.get_current_length())
         self.beatmatcher.transition()
+        self.change_blocks(new_blocks, new_powerups)

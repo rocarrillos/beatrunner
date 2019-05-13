@@ -87,13 +87,11 @@ class MainWidget(BaseWidget) :
 
         if keycode[1] == "up":
             if self.screen == "menu":
-                print("pressed")
                 self.button += 1
                 self.menu_display.highlight_button(1)
 
         if keycode[1] == "down":
             if self.screen == "menu":
-                print("pressed")
                 self.button -= 1
                 self.menu_display.highlight_button(-1)
 
@@ -104,7 +102,6 @@ class MainWidget(BaseWidget) :
                     self.anim_group.add(self.tutorial_display)
                     self.tutorial_audio_manager.set_as_audio(self.audio)
                     self.tutorial_audio_manager.toggle() 
-                    print("toggled", self.tutorial_audio_manager.active)
                     self.screen = "tutorial"
                 if self.button % 2 == 1:
                     self.anim_group.remove(self.menu_display)
@@ -129,7 +126,8 @@ class MainWidget(BaseWidget) :
         self.audio_manager.end_transition_song(self.game_data.get_next_song())
         self.game_display.graphics_transition(self.song_data.blocks, self.song_data.powerups, self.game_data.player_images, self.game_data.ground_image,
                                         self.game_data.bg_image, self.game_data.block_image)
-
+        self.game_display.update_frame(self.audio_manager.get_current_frame())
+    
     def on_update(self) :
         if self.screen == "game":
             self.label.text = "Level "+str(self.game_data.level + 1) + "\n"
@@ -141,13 +139,13 @@ class MainWidget(BaseWidget) :
             self.label.text = "Tutorial Mode\n"
         if self.screen == "menu":
             self.label.text = ""
-        self.anim_group.on_update()
-        self.audio_manager.on_update()
-        self.tutorial_audio_manager.on_update()
         if self.screen == "game":
             self.game_display.update_frame(self.audio_manager.get_current_frame())
         elif self.screen == "tutorial":
             self.tutorial_display.update_frame(self.tutorial_audio_manager.get_current_frame())
+        self.anim_group.on_update()
+        self.audio_manager.on_update()
+        self.tutorial_audio_manager.on_update()
         if self.playing:
             self.prev_time = self.new_time
             self.new_time = time.time()
