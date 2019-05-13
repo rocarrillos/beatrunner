@@ -619,7 +619,7 @@ class BeatMatcher(InstructionGroup):
         diff = abs(2 * self.calculate_pos(self.audio_manager.get_secondary_bpm(), self.audio_manager.get_secondary_speed()) - 2 * self.calculate_pos(self.audio_manager.get_primary_bpm(), self.audio_manager.get_primary_speed()))
         self.remove(self.aimer)
         self.aimer = CEllipse(cpos=(self.x_pos + 2 * self.calculate_pos(self.audio_manager.get_primary_bpm(), self.audio_manager.get_primary_speed()), self.y_pos + 15), csize=(20, 20))
-        self.transition_possible = diff <= 10
+        self.transition_possible = diff <= 15
         self.add(GREEN if self.transition_possible else YELLOW)
         self.add(self.aimer)
         return True
@@ -1246,6 +1246,8 @@ class GameDisplay(InstructionGroup):
             self.remove(item)
         self.blocks, self.powerups = set(), set()
         self.block_data, self.powerup_data = new_blocks, new_powerups
+        print(self.block_data)
+
         self.current_block, self.current_powerup = 0, 0
 
     def add_new_song_powerups(self):
