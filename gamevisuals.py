@@ -900,7 +900,6 @@ class TutorialDisplay(InstructionGroup):
         self.player.on_fall()
 
     def toggle(self):
-        print(self.blocks[self.current_block])
         self.playing = not self.playing
 
     def win_game(self):
